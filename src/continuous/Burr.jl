@@ -109,7 +109,7 @@ function Distributions.quantile(d::Burr, p::Real)
     elseif p == 1.0
         return Inf
     end
-    inner = expm1(-log1p(-p) / k)
+    inner = LogExpFunctions.expm1(-log1p(-p) / k)
     inner = max(inner, 0.0)
     return λ * inner^(1 / c)
 end

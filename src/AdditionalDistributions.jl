@@ -1,4 +1,4 @@
-module ExtraDistributions
+module AdditionalDistributions
     
     using Distributions
     import Distributions: @check_args, @distr_support, @inline
@@ -13,6 +13,8 @@ module ExtraDistributions
     import LambertW
     import LogExpFunctions
 
+    const normal_dist = Distributions.Normal()
+    
     #discrete Distributions
     include("discrete/BetaNegBinomial.jl")
     include("discrete/Borel.jl")

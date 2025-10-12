@@ -1,4 +1,7 @@
-println("Testing...")
+using TestItems
+using TestItemRunner
+# --- OPCIÓN A: correr TODO ---
+@run_package_tests
 
-include("continuous_test.jl")
-include("discrete_test.jl")
+# --- OPCIÓN B: solo las pruebas con tag :Borel ---
+#@run_package_tests (filter = ti -> :Alpha in ti.tags)

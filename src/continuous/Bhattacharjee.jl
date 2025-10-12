@@ -58,8 +58,6 @@ Statistics.var(d::Bhattacharjee) = d.σ^2 + (d.b - d.a)^2 / 12
 
 #### evaluate functions CDF, PDF, logPDF an CF
 
-const normal_dist = Distributions.Normal()
-
 function Distributions.cdf(d::Bhattacharjee, x::Real)
     a, b, σ = d.a, d.b, d.σ
     t1, t2 = (x - a) / σ, (x - b) / σ

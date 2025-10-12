@@ -89,16 +89,6 @@ function Distributions.cdf(d::Burr, x::Real)
     end
 end
 
-function Distributions.pdf(d::Burr, x::Real)
-    c, k, λ = d.c, d.k, d.λ
-    _insupport = insupport(d, x)
-    if _insupport
-        return (c * k)/λ * (x/λ)^(c - 1) * (1 + (x/λ)^c)^(-k-1)
-    else
-        return 0.0
-    end
-end
-
 function Distributions.logpdf(d::Burr, x::Real)
     c, k, λ = d.c, d.k, d.λ
     _insupport = insupport(d, x)

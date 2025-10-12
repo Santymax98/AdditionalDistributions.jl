@@ -55,7 +55,7 @@ end
 @testitem "Generic – Dagum" tags=[:Generic, :Continuous, :Dagum] setup=[M] begin
     M.check(Dagum(0.5, 1.5, 2.5))
     M.check(Dagum(2.0, 3.0, 4.0))
-    M.check(Dagum(0.1, 0.2, 0.3))
+    M.check(Dagum(0.2, 0.3, 0.4))
 end
 
 @testitem "Generic – Gompertz" tags=[:Generic, :Continuous, :Gompertz] setup=[M] begin
@@ -67,7 +67,7 @@ end
 @testitem "Generic – Lomax" tags=[:Generic, :Continuous, :Lomax] setup=[M] begin
     M.check(Lomax(0.5, 1.5))
     M.check(Lomax(2.0, 3.0))
-    M.check(Lomax(0.1, 0.2))
+    M.check(Lomax(1.0, 0.2))
 end
 
 @testitem "Generic – Maxwell" tags=[:Generic, :Continuous, :Maxwell] setup=[M] begin

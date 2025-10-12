@@ -71,38 +71,31 @@ StatsBase.kurtosis(d::Lomax) = d.α > 4 ? (6 *(d.α^3 + d.α^2 - 6*d.α - 2))/(d
 #### evaluate functions CDF, PDF, logPDF, quantile
 
 function Distributions.cdf(d::Lomax, x::Real)
+    insupport(d, x) || return 0.0
     α, λ = d.α, d.λ
-    _insupport = insupport(d, x)
-    if _insupport
-        return 1.0 - (1.0 + (x/λ))^(-α)
-    else
-        return 0.0            
-    end
+    # 1 - (1 + x/λ)^(-α)  →  numéricamente: -expm1(-α*log1p(x/λ))
+    return -expm1(-α * log1p(x / λ))
 end
 
 function Distributions.pdf(d::Lomax, x::Real)
+    insupport(d, x) || return 0.0
     α, λ = d.α, d.λ
-    _insupport = insupport(d, x)
-    if _insupport
-        return (α/λ)*(1.0 + (x/λ))^(-(α+1))
-    else
-        return 0.0
-    end
+    return (α/λ) * (1 + x/λ)^(-(α + 1))
 end
 
 function Distributions.logpdf(d::Lomax, x::Real)
+    insupport(d, x) || return -Inf
     α, λ = d.α, d.λ
-    _insupport = insupport(d, x)
-    if _insupport
-        return log(α/λ) - (α+1) * log(1.0 + (x/λ))
-    else
-        return -Inf
-    end
+    return log(α/λ) - (α + 1) * log1p(x / λ)
 end
 
 function Distributions.quantile(d::Lomax, p::Real)
+    (0.0 ≤ p ≤ 1.0) || throw(DomainError(p, "p ∈ [0,1]"))
+    p == 0.0 && return 0.0
+    p == 1.0 && return Inf
     α, λ = d.α, d.λ
-    return λ * ((1.0 - p)^(-1.0/α) - 1.0)
+    # λ * ((1 - p)^(-1/α) - 1) → estable: λ * expm1( -log1p(-p)/α )
+    return λ * expm1(-log1p(-p) / α)
 end
 
 ## sampling 

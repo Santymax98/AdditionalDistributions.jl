@@ -34,7 +34,7 @@ end
 Zipf() = Zipf{Float64}(1, 1)
 Zipf(N::Integer) = Zipf{Float64}(N, 1)
 
-@distr_support Zipf 0 d.N
+@distr_support Zipf 1 d.N
 
 #function Distributions.insupport(d::Zipf, x::Int)
 #    return 1 <= x <= d.N

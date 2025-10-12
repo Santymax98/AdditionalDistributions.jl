@@ -83,18 +83,6 @@ function Distributions.cdf(d::Dagum, x::Real)
     end
 end
 
-function Distributions.pdf(d::Dagum, x::Real)
-    a, b, p = d.a, d.b, d.p
-    _insupport = insupport(d, x)
-    if _insupport
-        term_1 = a * b^(-a * p) * p * x^(-1 + a*p)
-        term_2 = (1 + (x/b)^a)^(-1-p)
-        return term_1 * term_2
-    else
-        return 0.0
-    end
-end
-
 function Distributions.logpdf(d::Dagum, x::Real)
     a, b, p = d.a, d.b, d.p
     _insupport = insupport(d, x)

@@ -1,3 +1,4 @@
+# docs/make.jl
 push!(LOAD_PATH, joinpath(@__DIR__, ".."))
 using AdditionalDistributions
 using Documenter

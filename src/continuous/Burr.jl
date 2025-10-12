@@ -81,19 +81,21 @@ StatsBase.kurtosis(d::Burr) =  (-3 * moments(d, 1)^4 + 6 * moments(d, 1)^2 * mom
 
 function Distributions.cdf(d::Burr, x::Real)
     c, k, λ = d.c, d.k, d.λ
-    _insupport = insupport(d, x)
-    if _insupport
-        return 1 - (1 + (x/λ)^c)^(-k)
-    else
+    if !insupport(d, x)
         return 0.0
     end
+    z = (x / λ)^c
+    F = -LogExpFunctions.expm1(-k * log1p(z))
+    return ifelse(F < 1.0, F, prevfloat(1.0))
 end
+
 
 function Distributions.logpdf(d::Burr, x::Real)
     c, k, λ = d.c, d.k, d.λ
     _insupport = insupport(d, x)
     if _insupport
-        return log(c) + log(k) - log(λ) + (c - 1) * log(x / λ) - (k + 1) * log(1 + (x / λ)^c)
+        z = x / λ
+        return log(c*k/λ) + (c - 1)*log(z) - (k + 1)*log1p(z^c)
     else
         return -Inf
     end
@@ -101,8 +103,17 @@ end
 
 function Distributions.quantile(d::Burr, p::Real)
     c, k, λ = d.c, d.k, d.λ
-    return λ * (1/(1 - p)^(1/k) - 1)^(1/c)
+    (0.0 ≤ p ≤ 1.0) || throw(DomainError(p, "p must be in [0, 1]"))
+    if p == 0.0
+        return 0.0
+    elseif p == 1.0
+        return Inf
+    end
+    inner = expm1(-log1p(-p) / k)
+    inner = max(inner, 0.0)
+    return λ * inner^(1 / c)
 end
+
 
 ## sampling 
 function Distributions.rand(rng::Distributions.AbstractRNG, d::Burr)

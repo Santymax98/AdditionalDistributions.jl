@@ -4,28 +4,33 @@ using AdditionalDistributions
 using Documenter
 using GR
 using Distributions
+using DocumenterVitepress
 
 DocMeta.setdocmeta!(AdditionalDistributions, :DocTestSetup, :(using AdditionalDistributions); recursive=true)
 
 makedocs(;
     modules=[AdditionalDistributions],
-    authors="Santiago Jimenez Ramos",
+    repo = Remotes.GitHub("Santymax98", "AdditionalDistributions.jl"),
+    authors="Santiago Jimenez Ramos <santiago.jimenez@ufpe.br>, and contributors",
     sitename="AdditionalDistributions.jl",
-    format=Documenter.HTML(;
-        prettyurls = get(ENV, "CI", "false") == "true",
-        canonical="https://Santymax98.github.io/AdditionalDistributions.jl",
-        edit_link="main",
-        assets=String[],
+    format = DocumenterVitepress.MarkdownVitepress(
+        repo = "https://github.com/Santymax98/AdditionalDistributions.jl",
     ),
     pages=[
-        "index.md",
-        "getting_started.md",
-        "Compatibility.md",
-        "Distributions.md"
+        "Home" => "index.md",
+        "Getting Started" => "getting_started.md",
+        "Compatibility" => "Compatibility.md",
+        "Bestiary" => [
+            "Discrete Distributions"=>"bestiary/discrete.md",
+            "Continuous Distribution"=>"bestiary/continuous.md",
+        ],
     ],
 )
 
-deploydocs(;
+DocumenterVitepress.deploydocs(;
     repo="github.com/Santymax98/AdditionalDistributions.jl",
+    target = "build", # this is where Vitepress stores its output
     devbranch="main",
+        branch = "gh-pages",
+    push_preview = true,
 )

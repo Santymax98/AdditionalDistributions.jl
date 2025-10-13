@@ -1,8 +1,10 @@
 # docs/make.jl
 using Pkg
+# desarrolla el paquete localmente (no requiere registro)
 Pkg.develop(path = joinpath(@__DIR__, ".."))
 using AdditionalDistributions
 using Documenter
+using GR
 using Distributions
 using DocumenterVitepress
 
@@ -14,10 +16,7 @@ makedocs(;
     authors="Santiago Jimenez Ramos <santiago.jimenez@ufpe.br>, and contributors",
     sitename="AdditionalDistributions.jl",
     format = DocumenterVitepress.MarkdownVitepress(
-        repo       = "https://github.com/Santymax98/AdditionalDistributions.jl",
-        devbranch  = "main",                               # <-- IMPORTANTE
-        devurl     = "dev",                                # opcional
-        deploy_url = "https://santymax98.github.io/AdditionalDistributions.jl", # opcional
+        repo = "https://github.com/Santymax98/AdditionalDistributions.jl",
     ),
     pages=[
         "Home" => "index.md",
@@ -31,9 +30,9 @@ makedocs(;
 )
 
 DocumenterVitepress.deploydocs(;
-    repo         = "github.com/Santymax98/AdditionalDistributions.jl",
-    target       = "build",
-    devbranch    = "main",
-    branch       = "gh-pages",
+    repo = "github.com/Santymax98/AdditionalDistributions.jl",
+    target = "build", # this is where Vitepress stores its output
+    devbranch="main",
+        branch = "gh-pages",
     push_preview = true,
 )

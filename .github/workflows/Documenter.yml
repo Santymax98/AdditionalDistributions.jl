@@ -1,51 +1,75 @@
-name: Documentation
+name: DocumenterVitepress
 
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*' ]     # <-- esencial para que 'stable' avance
+    branches:
+      - main
+    tags: ['*']
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
   statuses: write
 
 concurrency:
-  group: docs-${{ github.ref }}
+  group: pages
   cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0            # <-- ver historial y tags
 
-      - name: Set up Node (for VitePress)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
       - name: Set up Julia
         uses: julia-actions/setup-julia@v2
         with:
-          version: '1'              # 1.x estable
+          version: '1.11'
 
-      - name: Restore Julia cache
+      - name: Restore Julia package cache
+        id: julia-cache
         uses: julia-actions/cache@v2
 
-      - name: Instantiate docs env (develop local package)
+      # --- 👇 Paso clave: usar el paquete local antes de instanciar ---
+      - name: Install Julia dependencies (develop local)
         run: |
           julia --project=docs -e '
             using Pkg;
-            Pkg.develop(PackageSpec(path=pwd()));
+            Pkg.develop(path=".");
             Pkg.instantiate()'
 
-      - name: Build & deploy docs
+      # --- Limpieza e instalación de dependencias npm ---
+      - name: Clean and install Node.js dependencies
+        run: |
+          cd docs
+          rm -rf node_modules package-lock.json
+          npm cache clean --force
+          npm install --legacy-peer-deps
+
+      # --- Construcción de la documentación con DocumenterVitepress ---
+      - name: Build documentation
+        run: |
+          julia --project=docs -e '
+            using Pkg;
+            Pkg.instantiate();
+            include("docs/make.jl")'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          JULIA_DEBUG: Documenter
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
           GKSwstype: "100"
-        run: julia --project=docs docs/make.jl
+          JULIA_DEBUG: "Documenter"
+          DATADEPS_ALWAYS_ACCEPT: true
+
+      - name: Save Julia depot cache on cancel or failure
+        id: julia-cache-save
+        if: cancelled() || failure()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ steps.julia-cache.outputs.cache-paths }}
+          key: ${{ steps.julia-cache.outputs.cache-key }}

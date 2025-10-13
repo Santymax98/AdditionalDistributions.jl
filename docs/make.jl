@@ -1,5 +1,6 @@
 # docs/make.jl
-push!(LOAD_PATH, joinpath(@__DIR__, ".."))
+using Pkg
+Pkg.develop(path = joinpath(@__DIR__, ".."))
 using AdditionalDistributions
 using Documenter
 using GR

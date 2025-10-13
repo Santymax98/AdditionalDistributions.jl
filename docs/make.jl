@@ -1,5 +1,6 @@
 # docs/make.jl
 using Pkg
+# desarrolla el paquete localmente (no requiere registro)
 Pkg.develop(path = joinpath(@__DIR__, ".."))
 using AdditionalDistributions
 using Documenter

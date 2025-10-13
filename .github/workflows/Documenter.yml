@@ -35,11 +35,15 @@ jobs:
         id: julia-cache
         uses: julia-actions/cache@v2
 
-      - name: Install Julia dependencies
+      # --- 👇 Paso clave: usar el paquete local antes de instanciar ---
+      - name: Install Julia dependencies (develop local)
         run: |
-          julia --project=docs -e 'using Pkg; Pkg.instantiate()'
+          julia --project=docs -e '
+            using Pkg;
+            Pkg.develop(path=".");
+            Pkg.instantiate()'
 
-      # --- Added fix: clean npm and reinstall ---
+      # --- Limpieza e instalación de dependencias npm ---
       - name: Clean and install Node.js dependencies
         run: |
           cd docs
@@ -47,7 +51,7 @@ jobs:
           npm cache clean --force
           npm install --legacy-peer-deps
 
-      # --- Build docs with DocumenterVitepress ---
+      # --- Construcción de la documentación con DocumenterVitepress ---
       - name: Build documentation
         run: |
           julia --project=docs -e '

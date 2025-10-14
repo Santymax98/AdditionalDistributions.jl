@@ -96,7 +96,7 @@ function Distributions.logpdf(d::Burr, x::Real)
         logx = log(x)
         logλ = log(λ)
         logx_λ = logx - logλ
-        return log(c) + log(k) - logλ + (c - 1) * logx_λ - (k + 1) * log1pexp(c * logx_λ)
+        return log(c) + log(k) - logλ + (c - 1) * logx_λ - (k + 1) * LogExpFunctions.log1pexp(c * logx_λ)
     else
         return -Inf
     end

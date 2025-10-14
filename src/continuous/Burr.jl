@@ -93,7 +93,10 @@ function Distributions.logpdf(d::Burr, x::Real)
     c, k, λ = d.c, d.k, d.λ
     _insupport = insupport(d, x)
     if _insupport
-        return log(c) + log(k) - log(λ) + (c - 1) * log(x / λ) - (k + 1) * log(1 + (x / λ)^c)
+        logx = log(x)
+        logλ = log(λ)
+        logx_λ = logx - logλ
+        return log(c) + log(k) - logλ + (c - 1) * logx_λ - (k + 1) * LogExpFunctions.log1pexp(c * logx_λ)
     else
         return -Inf
     end

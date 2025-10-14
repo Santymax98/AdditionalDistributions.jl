@@ -3,7 +3,7 @@
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://Santymax98.github.io/AdditionalDistributions.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://Santymax98.github.io/AdditionalDistributions.jl/dev/)
 [![Build Status](https://github.com/Santymax98/AdditionalDistributions.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/Santymax98/AdditionalDistributions.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/Santymax98/AdditionalDistributions.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/Santymax98/AdditionalDistributions.jl)
+[![codecov](https://codecov.io/gh/Santymax98/AdditionalDistributions.jl/graph/badge.svg?token=5Z3O4U3FEI)](https://codecov.io/gh/Santymax98/AdditionalDistributions.jl)
 
 The [*AdditionalDistributions*](https://github.com/Santymax98/AdditionalDistributions.jl) package is a comprehensive extension of [*Distributions.jl*](https://github.com/JuliaStats/Distributions.jl).
 It is designed to expand the functionality of the base package by incorporating both discrete and continuous probability distributions that are not included in `Distributions`, either due to their specialized nature or because they are less commonly used.

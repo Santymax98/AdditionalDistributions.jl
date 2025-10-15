@@ -1,4 +1,4 @@
-module AdditionalDistributions
+module ProbabilityDistributions
     
     using Distributions
     import Distributions: @check_args, @distr_support, @inline

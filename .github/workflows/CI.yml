@@ -68,6 +68,6 @@ jobs:
         shell: julia --project=docs --color=yes {0}
         run: |
           using Documenter: DocMeta, doctest
-          using AdditionalDistributions
-          DocMeta.setdocmeta!(AdditionalDistributions, :DocTestSetup, :(using AdditionalDistributions); recursive=true)
-          doctest(AdditionalDistributions)
+          using ProbabilityDistributions
+          DocMeta.setdocmeta!(ProbabilityDistributions, :DocTestSetup, :(using ProbabilityDistributions); recursive=true)
+          doctest(ProbabilityDistributions)

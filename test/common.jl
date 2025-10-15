@@ -3,7 +3,7 @@
     using Random, StableRNGs
     using Distributions
     using StatsBase
-    using AdditionalDistributions
+    using ProbabilityDistributions
 
     const rng = StableRNG(2024)
 

@@ -41,7 +41,7 @@ end
 Alpha
 ```
 ```@example plotdensity
-using Distributions, AdditionalDistributions
+using Distributions, ProbabilityDistributions
 plotdensity((0.0, 1.0), Alpha, (1, 1)) # hide
 ```
 ```@docs

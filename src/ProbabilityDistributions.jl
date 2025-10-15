@@ -12,6 +12,8 @@ module AdditionalDistributions
     import QuadGK
     import LambertW
     import LogExpFunctions
+    import Sobol
+    import LinearAlgebra
 
     const normal_dist = Distributions.Normal()
     
@@ -83,5 +85,10 @@ module AdditionalDistributions
         Maxwell,
         Nakagami,
         PERT
+    
+    include("multivariate/MvGaussian.jl")
+
+    export 
+        MvGaussian
         
 end

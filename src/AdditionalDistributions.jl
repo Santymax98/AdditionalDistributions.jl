@@ -1,4 +1,4 @@
-module ProbabilityDistributions
+module AdditionalDistributions
     
     using Distributions
     import Distributions: @check_args, @distr_support, @inline
@@ -16,6 +16,10 @@ module ProbabilityDistributions
     import LinearAlgebra
 
     const normal_dist = Distributions.Normal()
+    const sqrt2π = sqrt(2.0 * π)
+
+
+    include("utils.jl")
     
     #discrete Distributions
     include("discrete/BetaNegBinomial.jl")
@@ -87,8 +91,10 @@ module ProbabilityDistributions
         PERT
     
     include("multivariate/MvGaussian.jl")
+    include("multivariate/MvStudent.jl")
 
     export 
-        MvGaussian
+        MvGaussian,
+        MvTStudent
         
 end

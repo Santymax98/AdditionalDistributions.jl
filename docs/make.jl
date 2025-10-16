@@ -2,21 +2,21 @@
 using Pkg
 # desarrolla el paquete localmente (no requiere registro)
 Pkg.develop(path = joinpath(@__DIR__, ".."))
-using ProbabilityDistributions
+using AdditionalDistributions
 using Documenter
 using GR
 using Distributions
 using DocumenterVitepress
 
-DocMeta.setdocmeta!(ProbabilityDistributions, :DocTestSetup, :(using ProbabilityDistributions); recursive=true)
+DocMeta.setdocmeta!(AdditionalDistributions, :DocTestSetup, :(using AdditionalDistributions); recursive=true)
 
 makedocs(;
-    modules=[ProbabilityDistributions],
-    repo = Remotes.GitHub("Santymax98", "ProbabilityDistributions.jl"),
+    modules=[AdditionalDistributions],
+    repo = Remotes.GitHub("Santymax98", "AdditionalDistributions.jl"),
     authors="Santiago Jimenez Ramos <santiago.jimenez@ufpe.br>, and contributors",
-    sitename="ProbabilityDistributions.jl",
+    sitename="AdditionalDistributions.jl",
     format = DocumenterVitepress.MarkdownVitepress(
-        repo = "https://github.com/Santymax98/ProbabilityDistributions.jl",
+        repo = "https://github.com/Santymax98/AdditionalDistributions.jl",
     ),
     pages=[
         "Home" => "index.md",
@@ -30,7 +30,7 @@ makedocs(;
 )
 
 DocumenterVitepress.deploydocs(;
-    repo = "github.com/Santymax98/ProbabilityDistributions.jl",
+    repo = "github.com/Santymax98/AdditionalDistributions.jl",
     target = "build", # this is where Vitepress stores its output
     devbranch="main",
         branch = "gh-pages",

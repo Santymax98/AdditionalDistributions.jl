@@ -1,20 +1,20 @@
-# ProbabilityDistributions.jl
+# AdditionalDistributions.jl
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://Santymax98.github.io/ProbabilityDistributions.jl/stable/)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://Santymax98.github.io/ProbabilityDistributions.jl/dev/)
-[![Build Status](https://github.com/Santymax98/ProbabilityDistributions.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/Santymax98/ProbabilityDistributions.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/Santymax98/ProbabilityDistributions.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/Santymax98/ProbabilityDistributions.jl)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://Santymax98.github.io/AdditionalDistributions.jl/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://Santymax98.github.io/AdditionalDistributions.jl/dev/)
+[![Build Status](https://github.com/Santymax98/AdditionalDistributions.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/Santymax98/AdditionalDistributions.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/Santymax98/AdditionalDistributions.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/Santymax98/AdditionalDistributions.jl)
 
 ---
 
-**ProbabilityDistributions.jl** provides a collection of probability distributions and related functions,  
+**AdditionalDistributions.jl** provides a collection of probability distributions and related functions,  
 fully compatible with the [`Distributions.jl`](https://github.com/JuliaStats/Distributions.jl) API.  
 It focuses on offering a diverse set of distributions that differ from those established in `Distributions.jl`,  
 including accurate multivariate CDF implementations for families such as the **Gaussian** and **Student’s t**,  
 which are currently scattered, unimplemented, or not unified across existing libraries.
 
 While compatible with `Distributions.jl` through the same public API (`pdf`, `cdf`, `rand`, etc.),  
-**ProbabilityDistributions.jl** is developed as an independent and research-oriented project —  
+**AdditionalDistributions.jl** is developed as an independent and research-oriented project —  
 exploring distributional families and computational methods not currently available in standard Julia libraries.
 
 ---
@@ -22,7 +22,7 @@ exploring distributional families and computational methods not currently availa
 ## 🔹 Example
 
 ```julia
-using ProbabilityDistributions
+using AdditionalDistributions
 
 # Classical and specialized distributions
 d1 = Lomax(α=2.0, λ=3.0)
@@ -51,11 +51,11 @@ cdf(MvT(ν=5, Σ), [0.2, 0.3])
 ## 🔧 Motivation
 
 Many probability distributions and multivariate CDFs used in applied statistics remain unavailable or fragmented across different Julia libraries.
-**ProbabilityDistributions.jl** aims to provide a unified, consistent, and numerically robust framework for these models —
+**AdditionalDistributions.jl** aims to provide a unified, consistent, and numerically robust framework for these models —
 combining clarity, accuracy, and full interoperability within Julia’s statistical ecosystem.
 
 ---
 
 *Author:* Santiago Jiménez
 *License:* MIT
-*Repository:* [Santymax98/ProbabilityDistributions.jl](https://github.com/Santymax98/ProbabilityDistributions.jl)
+*Repository:* [Santymax98/AdditionalDistributions.jl](https://github.com/Santymax98/AdditionalDistributions.jl)

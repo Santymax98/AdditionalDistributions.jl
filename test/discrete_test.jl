@@ -1,5 +1,5 @@
 using TestItems
-using ProbabilityDistributions
+using AdditionalDistributions
 using Distributions
 
 @testitem "Generic – BetaNegBinomial" tags=[:Generic, :Discrete, :BetaNegBinomial] setup=[M] begin

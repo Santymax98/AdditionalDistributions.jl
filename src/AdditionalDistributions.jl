@@ -5,15 +5,15 @@ module AdditionalDistributions
     import Roots
     import SpecialFunctions
     import Random
-    import Base
+    import Base: @propagate_inbounds
     import Statistics
     import StatsBase
     import HypergeometricFunctions
     import QuadGK
     import LambertW
     import LogExpFunctions
-    import Sobol
     import LinearAlgebra
+    import Primes
 
     const normal_dist = Distributions.Normal()
     const sqrt2π = sqrt(2.0 * π)

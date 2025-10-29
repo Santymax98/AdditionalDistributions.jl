@@ -1,12 +1,39 @@
+"""
+    MvTStudent(ν::Real, μ::AbstractVector, Σ::AbstractMatrix)
+
+A *Multivariate Student's t distribution* equivalent in behavior to
+[`Distributions.MvTDist`](https://juliastats.org/Distributions.jl/stable/multivariate/#Distributions.MvTDist),
+but using a **custom Quasi-Monte Carlo (QMC) integrator** for the
+rectangular cumulative distribution function (`cdf`).
+
+This type preserves all the standard functionality of `MvTDist` — including
+`pdf`, `logpdf`, `rand`, `mean`, and `cov` — while providing its own
+implementation of `cdf(a, b)` for rectangular probabilities under a
+multivariate t law.
+
+```julia
+MvTStudent(ν, Σ)             # zero-mean version with df=ν
+MvTStudent(ν, μ, Σ)          # with degrees of freedom ν, mean μ, and covariance Σ
+
+params(d)                    # returns (ν, μ, Σ)
+cdf(d, a, b)                 # evaluates P(a ≤ X ≤ b)
+```
+
+External link:
+
+* [Multivariate Student's t-distribution - Wikipedia](https://en.wikipedia.org/wiki/Multivariate_t-distribution)
+"""
 struct MvTStudent{D<:Distributions.MvTDist} <: Distributions.ContinuousMultivariateDistribution
     dist::D
 end
 
-MvTStudent(ν::Real, μ::AbstractVector, Σ::AbstractMatrix) = MvTStudent(MvTDist(ν, μ, Σ))
+MvTStudent(ν::Real, μ::AbstractVector, Σ::AbstractMatrix) = MvTStudent(Distributions.MvTDist(ν, μ, Σ))
+MvTStudent(ν::Real, Σ::AbstractMatrix) = MvTStudent(Distributions.MvTDist(ν, zeros(size(Σ, 1)), Σ))
 
-# ───────────────────────────────
-#  Delegación de métodos estándar
-# ───────────────────────────────
+
+# ──────────────────────────
+# Standard Method Delegation
+# ──────────────────────────
 Statistics.mean(d::MvTStudent) = Statistics.mean(d.dist)
 Statistics.cov(d::MvTStudent)  = Statistics.cov(d.dist)
 Distributions.pdf(d::MvTStudent, x::AbstractVector) = Distributions.pdf(d.dist, x)
@@ -15,22 +42,40 @@ Distributions.rand(rng::Distributions.AbstractRNG, d::MvTStudent) = Distribution
 Distributions.insupport(d::MvTStudent, x::AbstractVector) = Distributions.insupport(d.dist, x)
 
 # ───────────────────────────────
-#  CDF por integración jerárquica
+# CDF by GENZ-BRETZ
 # ───────────────────────────────
-function Distributions.cdf(d::MvTStudent, x::AbstractVector;
-        r::Int=12, m::Int=10_000, rng=Random.default_rng(),
-        batch::Int=96, cache_kib::Int=256, full::Bool=false)
+function Distributions.cdf(d::MvTStudent,
+                           a::AbstractVector, b::AbstractVector;
+                           m::Int = 1000*length(a),
+                           abseps::Real = 1e-6,
+                           releps::Real = 1e-6,
+                           pivot::Bool = true,
+                           rng = Random.default_rng(),
+                           full::Bool = false,
+                           antithetic::Bool=false)
 
-    # Extrae parámetros desde tu wrapper (campos según tu MvTDist)
-    μ  = d.dist.μ
-    Σ  = d.dist.Σ
-    νr = d.dist.df               # en tu tipo: df (no ν)
+    n = length(a); @assert length(b) == n
+    μ = Statistics.mean(d)              # location
+    Σscale = d.dist.Σ                   # scatter (no cov)
+    ν = Int(round(d.dist.df))
 
-    # Centra y llama al núcleo t
-    Δ = x .- μ
-    TΣ = eltype(Σ)
-    ν  = TΣ(νr)                  # asegura el tipo numérico consistente
+    @assert size(Σscale) == (n,n)
+    @assert all(b .>= a)
 
-    val, err = _cdf_t_base(Σ, Δ; ν=ν, r=r, m=m, rng=rng, batch=batch, cache_kib=cache_kib)
-    return full ? (val, err) : val
+    T = promote_type(eltype(Σscale), eltype(a), eltype(b), eltype(μ))
+    Ddiag = sqrt.(LinearAlgebra.diag(Σscale))
+    invD  = 1 ./(T.(Ddiag))
+    C     = LinearAlgebra.Symmetric(LinearAlgebra.Diagonal(invD) * T.(Σscale) * LinearAlgebra.Diagonal(invD))
+    aS    = (T.(a) .- T.(μ)) .* invD
+    bS    = (T.(b) .- T.(μ)) .* invD
+    δS    = zeros(T, n)
+
+    res = mvtcdf(C, aS, bS; ν=ν, δ=δS,
+                 maxpts=m, abseps=abseps, releps=releps,
+                 assume_correlation=true, pivot=pivot,
+                 antithetic=antithetic, rng=rng)
+
+    return full ? (res.value, res.error, res.inform) : res.value
 end
+
+

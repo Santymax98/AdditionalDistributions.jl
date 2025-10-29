@@ -63,5 +63,5 @@ All statistical methods (`mean`, `cov`, `pdf`, etc.) are delegated to their inte
 adding numerical integration support for the cumulative distribution function.
 
 ```@docs
-mvtcdf
+AdditionalDistributions.mvtcdf
 ```

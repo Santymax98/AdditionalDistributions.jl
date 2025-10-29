@@ -5,15 +5,21 @@ module AdditionalDistributions
     import Roots
     import SpecialFunctions
     import Random
-    import Base
+    import Base: @propagate_inbounds
     import Statistics
     import StatsBase
     import HypergeometricFunctions
     import QuadGK
     import LambertW
     import LogExpFunctions
+    import LinearAlgebra
+    import Primes
 
     const normal_dist = Distributions.Normal()
+    const sqrt2π = sqrt(2.0 * π)
+
+
+    include("utils.jl")
     
     #discrete Distributions
     include("discrete/BetaNegBinomial.jl")
@@ -83,5 +89,12 @@ module AdditionalDistributions
         Maxwell,
         Nakagami,
         PERT
+    
+    include("multivariate/MvGaussian.jl")
+    include("multivariate/MvStudent.jl")
+
+    export 
+        MvGaussian,
+        MvTStudent
         
 end

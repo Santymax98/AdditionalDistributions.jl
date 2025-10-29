@@ -49,7 +49,7 @@ end
 @testitem "Generic – Burr" tags=[:Generic, :Continuous, :Burr] setup=[M] begin
     M.check(Burr(1.0, 1.0, 1.0))
     M.check(Burr(2.0, 3.0, 4.0))
-    M.check(Burr(0.1, 0.2, 0.3))
+    M.check(Burr(0.2, 0.3, 0.4))
 end
 
 @testitem "Generic – Dagum" tags=[:Generic, :Continuous, :Dagum] setup=[M] begin

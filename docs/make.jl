@@ -25,6 +25,7 @@ makedocs(;
         "Bestiary" => [
             "Discrete Distributions"=>"bestiary/discrete.md",
             "Continuous Distribution"=>"bestiary/continuous.md",
+            "Multivariate Distributions"=>"bestiary/multivariate.md",
         ],
     ],
 )

@@ -16,8 +16,8 @@ end
 # --- Ejecución de TestItems ---
 
 # OPCIÓN A: correr TODO el paquete
-#@run_package_tests
+@run_package_tests
 
 # --- OPCIÓN B (descomenta para filtrar por tag específico) ---
-@run_package_tests (filter = ti -> :Burr in ti.tags)
+#@run_package_tests (filter = ti -> :Burr in ti.tags)
 # @run_package_tests (filter = ti -> :Borel in ti.tags)

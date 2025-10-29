@@ -61,3 +61,7 @@ end
 
 All statistical methods (`mean`, `cov`, `pdf`, etc.) are delegated to their internal distribution objects, ensuring full compatibility while
 adding numerical integration support for the cumulative distribution function.
+
+```@docs
+mvtcdf
+```

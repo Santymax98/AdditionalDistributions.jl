@@ -370,27 +370,12 @@ end
     mvtcdf(Σ, a, b; ν=0, δ=zeros, maxpts=1000n, abseps=1e-6, releps=1e-6,
            assume_correlation=false, pivot=true, rng=Random.default_rng())
 
-Probabilidad MVN/MVT (no central) en `[a,b]` usando
-MVSORT + QMC (Richtmyer + shifts). 
-
-Retorna `(value, error, inform)`:
-- `inform = 0` éxito; `1` tol. no alcanzada con `maxpts`;
-  `2` dimensión inválida; `3` matriz no-PSD.
-"""
-# ─────────────────────────────────────────────────────────────
-# API principal
-# ─────────────────────────────────────────────────────────────
-"""
-    mvtcdf(Σ, a, b; ν=0, δ=zeros, maxpts=1000n, abseps=1e-6, releps=1e-6,
-           assume_correlation=false, pivot=true, antithetic=false,
-           rng=Random.default_rng())
-
-Probabilidad MVN/MVT (no central) en `[a,b]` usando
+MVN/MVT probability (non-core) on `[a,b]` using
 MVSORT + QMC (Richtmyer + shifts).
 
-Retorna `(value, error, inform)`:
-- `inform = 0` éxito; `1` tol. no alcanzada con `maxpts`;
-  `2` dimensión inválida; `3` matriz no-PSD.
+Returns `(value, error, report)`:
+- `inform = 0` success; `1` tol. not reached with `maxpts`; 
+invalid dimension `2`; `3` non-PSD matrix.
 """
 function mvtcdf(Σ::AbstractMatrix{T},
                 a::AbstractVector{T},

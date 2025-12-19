@@ -143,7 +143,14 @@ function Distributions.convolve(d1::IrwinHall, d2::IrwinHall)
 end
 
 Distributions.convert(::Type{IrwinHall}, d::Uniform) = IrwinHall(1, d.a, d.b)
-
+function Distributions.convert(::Type{Uniform}, d::IrwinHall)
+    d.n != 1 && throw(DomainError("IrwinHall can be converted to Uniform only for n = 1"))
+    return Uniform(d.a, d.b)
+end
+function Distributions.convert(::Type{TriangularDist}, d::IrwinHall)
+    d.n != 2 && throw(DomainError("IrwinHall can be converted to Uniform only for n = 2"))
+    return TriangularDist(minimum(d), maximum(d), mean(d))
+end
 # sampling
 
 Distributions.rand(rng::Distributions.AbstractRNG, d::IrwinHall) = (d.b - d.a)*sum(rand(rng) for _ in 1:d.n) + d.n*d.a

@@ -86,8 +86,8 @@ function Distributions.logpdf(d::IrwinHall, x::Real)
     insupport(d, x) || return typemin(a)
 
     y = (x - n*a) / (b - a)
-    y <= 1 && return (n-1)*log(y) - logfactorial(n-1) # left edge
-    y >= (n-1) && return (n-1)*log(n - y) - logfactorial(n-1)  # right edge
+    y <= 1 && return (n-1)*log(y) - SpecialFunctions.logfactorial(n-1) # left edge
+    y >= (n-1) && return (n-1)*log(n - y) - SpecialFunctions.logfactorial(n-1)  # right edge
     return log(pdf(d, x)) # middle
 end
 

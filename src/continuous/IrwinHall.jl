@@ -116,12 +116,14 @@ end
 
 function Distributions.quantile(d::IrwinHall, p::Real)
     n, a, b = d.n, d.a, d.b
-    A, B = n*a, n*b
-    cdf_func(x) = cdf(d, x) - p
-    pdf_func(x) = pdf(d, x)
-    q_init = A + p * (B - A) 
+    A, B = minimum(d), maximum(d)
+    iszero(p) && return A
+    isone(p) && return B
 
-    return Roots.find_zero((cdf_func, pdf_func), q_init, Roots.Newton())
+    p0 = 1/factorial(n)
+    p <= p0 && return A + (b-a) * (factorial(n)*p)^(1/n)
+    p >= 1-p0 && return B - (b-a) * (factorial(n)*(1-p))^(1/n)
+    return Roots.find_zero(x->cdf(d,x) - p, (A, B), Roots.Bisection())
 end
 
 Distributions.cf(d::IrwinHall, t::Real) = cf(Uniform(d.a, d.b), t) ^ d.n

@@ -64,6 +64,12 @@ end
     M.check(Gompertz(0.1, 0.2))
 end
 
+@testitem "Generic – IrwinHall" tags=[:Generic, :Continuous, :IrwinHall] setup=[M] begin
+    M.check(IrwinHall(2))
+    M.check(IrwinHall(4, -1.0, 1.0))
+    M.check(IrwinHall(10, 2.0, 5.0))
+end
+
 @testitem "Generic – Lomax" tags=[:Generic, :Continuous, :Lomax] setup=[M] begin
     M.check(Lomax(0.5, 1.5))
     M.check(Lomax(2.0, 3.0))

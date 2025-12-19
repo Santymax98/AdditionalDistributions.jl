@@ -119,9 +119,9 @@ function Distributions.quantile(d::IrwinHall, p::Real)
     A, B = n*a, n*b
     cdf_func(x) = cdf(d, x) - p
     pdf_func(x) = pdf(d, x)
-    initial_point = A + p * (B - A) 
+    q_init = A + p * (B - A) 
 
-    return Roots.find_zero((cdf_func, pdf_func), initial_point, Roots.Newton())
+    return Roots.find_zero((cdf_func, pdf_func), q_init, Roots.Newton())
 end
 
 Distributions.cf(d::IrwinHall, t::Real) = cf(Uniform(d.a, d.b), t) ^ d.n

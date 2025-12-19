@@ -111,6 +111,12 @@ Gompertz
 plotdensity((0.0, 1.0), Gompertz, (1,1)) # hide
 ```
 ```@docs
+IrwinHall
+```
+```@example plotdensity
+plotdensity((0.0, 3.0), IrwinHall, (3)) # hide
+```
+```@docs
 Lomax
 ```
 ```@example plotdensity

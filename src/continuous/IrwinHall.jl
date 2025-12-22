@@ -5,7 +5,7 @@
 ``IrwinHall(n, a, b)`` distributed variable is a sum of ``n`` independent ``Uniform(a, b)`` variables. Its probability density function (PDF) is given by:
 
 ```math
-f(x; n, a, b) = \\frac{1}{(b-a)(n-1)!}\\sum_{k=0}^{\\lfloor y\\rfloor}(-1)^k{n \\choose k} (y-k)^{n-1}, \\quad y = \\frac{x - a}{b - a}.
+f(x; n, a, b) = \\frac{1}{(b-a)(n-1)!}\\sum_{k=0}^{\\lfloor y\\rfloor}(-1)^k{n \\choose k} (y-k)^{n-1}, \\quad y = \\frac{x - na}{b - a}.
 ```
 
 Related Bates distribution is ``IrwinHall(n, a/n, b/n)``.

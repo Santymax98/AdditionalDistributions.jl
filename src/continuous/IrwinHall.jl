@@ -64,13 +64,14 @@ function Distributions.pdf(d::IrwinHall, x::Real)
     n, a, b = d.n, d.a, d.b
     insupport(d, x) || return zero(a)
 
-    n == one(n) && return 1/(b - a) # uniform distribution
+    n == one(n) && return inv(b - a) # uniform distribution
 
     y = (x - n*a) / (b - a)
     y = ifelse(y > n/2, n - y, y) # using symmetry we make calculation faster for large x
     m = floor(Int, y)
 
-    c = one(y)/((b - a) * factorial(n - 1) )
+    invfac = exp(-SpecialFunctions.logfactorial(n-1))
+    c = one(y) * invfac / (b - a)
     S = c * y^(n - 1)
 
     for k in 1:m
@@ -83,7 +84,7 @@ end
 
 function Distributions.logpdf(d::IrwinHall, x::Real)
     n, a, b = d.n, d.a, d.b
-    insupport(d, x) || return typemin(a)
+    insupport(d, x) || return oftype(float(x), -Inf)
 
     y = (x - n*a) / (b - a)
     y <= 1 && return (n-1)*log(y) - SpecialFunctions.logfactorial(n-1) - log(b - a) # left edge
@@ -103,7 +104,8 @@ function Distributions.cdf(d::IrwinHall, x::Real)
     y = ifelse(flag, n - y, y) # using symmetry we make calculation faster for large x
     m = floor(Int, y)
 
-    c = one(y)/(n * factorial(n - 1) )
+    invfac = exp(-SpecialFunctions.logfactorial(n-1))
+    c = one(y) * invfac / n
     S = c * y^n
 
     for k in 1:m
@@ -111,19 +113,32 @@ function Distributions.cdf(d::IrwinHall, x::Real)
         S += c * (y - k)^n
     end
 
-    return flag ? 1-S : S
+    return flag ? 1 - S : S
 end
 
 function Distributions.quantile(d::IrwinHall, p::Real)
     n, a, b = d.n, d.a, d.b
     A, B = minimum(d), maximum(d)
-    iszero(p) && return A
-    isone(p) && return B
 
-    p0 = 1/factorial(n)
-    p <= p0 && return A + (b-a) * (factorial(n)*p)^(1/n)
-    p >= 1-p0 && return B - (b-a) * (factorial(n)*(1-p))^(1/n)
-    return Roots.find_zero(x->cdf(d,x) - p, (A, B), Roots.Bisection())
+    iszero(p) && return A
+    isone(p)  && return B
+
+    Tp = promote_type(typeof(float(a)), typeof(float(b)), typeof(float(p)))
+    pn = Tp(p)
+    nf = Tp(n)
+
+    lf = Tp(SpecialFunctions.logfactorial(n))  # log(n!)
+    p0 = exp(-lf)
+
+    if pn <= p0
+        y = exp((lf + log(pn)) / nf)
+        return A + (b - a) * y
+    elseif pn >= 1 - p0
+        y = exp((lf + log1p(-pn)) / nf)
+        return B - (b - a) * y
+    end
+
+    return Roots.find_zero(x -> cdf(d, x) - p, (A, B), Roots.Bisection())
 end
 
 Distributions.cf(d::IrwinHall, t::Real) = cf(Uniform(d.a, d.b), t) ^ d.n

@@ -138,7 +138,7 @@ function Distributions.quantile(d::IrwinHall, p::Real)
         return B - (b - a) * y
     end
 
-    return Roots.find_zero(x -> cdf(d, x) - p, (A, B), Roots.Bisection())
+    return Roots.find_zero(x -> cdf(d, x) - p, (A, B), Roots.A42())
 end
 
 Distributions.cf(d::IrwinHall, t::Real) = cf(Uniform(d.a, d.b), t) ^ d.n

@@ -52,22 +52,19 @@ _β(d::PERT) = 1 + 4 * (d.m - d.b) / (d.m - d.a)
 # Location and scale (mean and variance)
 Statistics.mean(d::PERT) = (d.a + 4d.b + d.m) / 6
 Statistics.var(d::PERT) = (Statistics.mean(d) - d.a) * (d.m - Statistics.mean(d)) / 7.0
-Statistics.median(d::PERT) = (d.a + 6 * d.b + d.m)/8.0
+Statistics.median(d::PERT) = Distributions.quantile(d, 0.5)
 # Mode
 StatsBase.mode(d::PERT) = d.b
-StatsBase.skewness(d::PERT) = (2 * (_β(d) - _α(d)) * sqrt(_α(d) + _β(d) + 1))/(_α(d) + _β(d) + 2 * sqrt(_α(d) * _β(d)))
+StatsBase.skewness(d::PERT) = (2 * (_β(d) - _α(d)) * sqrt(_α(d) + _β(d) + 1)) / ((_α(d) + _β(d) + 2) * sqrt(_α(d) * _β(d)))
 # Evaluate functions CDF, PDF, logPDF, quantile
 function Distributions.cdf(d::PERT, x::Real)
     a, b, m = d.a, d.b, d.m
-    _insupport = insupport(d, x)
-    if _insupport
-        z = (x - a)/(m - a)
-        alpha, beta = _α(d), _β(d)
-        value = SpecialFunctions.beta_inc(alpha, beta, z) 
-        return value[1]
-    else
-        return 0.0            
-    end
+    x < a && return 0.0
+    x >= m && return 1.0
+    z = (x - a) / (m - a)
+    alpha, beta = _α(d), _β(d)
+    value = SpecialFunctions.beta_inc(alpha, beta, z)
+    return value[1]
 end
 
 function Distributions.pdf(d::PERT, x::Real)
@@ -97,6 +94,9 @@ function Distributions.logpdf(d::PERT, x::Real)
 end
 
 function Distributions.quantile(d::PERT, p::Real)
+    (0 <= p <= 1) || throw(DomainError(p, "p must be in [0, 1]"))
+    p == 0 && return d.a
+    p == 1 && return d.m
     a, b, m = d.a, d.b, d.m
     alpha, beta = _α(d), _β(d)
     value = SpecialFunctions.beta_inc_inv(alpha, beta, p)

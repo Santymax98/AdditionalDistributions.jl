@@ -31,12 +31,13 @@ BetaNegBinomial(r::Integer, α::Integer, β::Integer; check_args::Bool=true) = B
 
 function BetaNegBinomial(r::Integer, α::Real, β::Real; check_args::Bool=true)
     @check_args BetaNegBinomial (r, r > zero(r)) (α, zero(α) < α) (β, zero(β) < β)
+    α, β = promote(α, β)
     return BetaNegBinomial{typeof(α)}(r, α, β)
 end
 
-BetaNegBinomial() = BetaNegBinomial{Float64}(1.0, 1.0, 1.0)
-BetaNegBinomial(r::Integer) = BetaNegBinomial{Float64}(r, 1.0, 1.0)
-BetaNegBinomial(r::Integer, α) = BetaNegBinomial{Float64}(r, α, α)
+BetaNegBinomial() = BetaNegBinomial(1, 1.0, 1.0)
+BetaNegBinomial(r::Integer) = BetaNegBinomial(r, 1.0, 1.0)
+BetaNegBinomial(r::Integer, α) = BetaNegBinomial(r, α, α)
 
 @distr_support BetaNegBinomial 0 Inf
 
@@ -77,58 +78,45 @@ end
 
 #### evaluate functions CDF, PDF, logPDF an CF
 
-function Distributions.cdf(d::BetaNegBinomial, x::Real)
+@inline _isnonneginteger_bnb(x::Real) = isfinite(x) && x >= 0 && x == floor(x)
+
+function _logpdf_bnb(d::BetaNegBinomial, k::Integer)
     r, α, β = d.r, d.α, d.β
-    if !insupport(d, x)
-        return 0.0
-    end
-    x = round(Int, x)
-    log_terms = Float64[]  # Inicializa un array vacío para almacenar los términos logarítmicos
-    for k in 0:x
-        log_pdf = SpecialFunctions.loggamma(r + k) + SpecialFunctions.logbeta(α + r, β + k) - SpecialFunctions.loggamma(k + 1) - SpecialFunctions.loggamma(r) - SpecialFunctions.logbeta(α, β)
-        push!(log_terms, log_pdf)  # Almacena los términos logarítmicos en el array
-    end
-    log_cdf_value = LogExpFunctions.logsumexp(log_terms)  # Utiliza logsumexp para sumar los términos logarítmicos
-    return exp(log_cdf_value)
+    return SpecialFunctions.loggamma(r + k) + SpecialFunctions.logbeta(α + r, β + k) -
+           SpecialFunctions.loggamma(k + 1) - SpecialFunctions.loggamma(r) -
+           SpecialFunctions.logbeta(α, β)
+end
+
+function Distributions.cdf(d::BetaNegBinomial, x::Real)
+    x < 0 && return 0.0
+    x == Inf && return 1.0
+    !isfinite(x) && return 0.0
+    kmax = floor(Int, x)
+    log_terms = [_logpdf_bnb(d, k) for k in 0:kmax]
+    return exp(LogExpFunctions.logsumexp(log_terms))
 end
 
 function Distributions.pdf(d::BetaNegBinomial, x::Real)
-    r, α, β = d.r, d.α, d.β
-    if !insupport(d, x)
-        return -Inf
-    end
-    x = round(Int, x)
-    
-    log_pdf = SpecialFunctions.loggamma(r + x) + SpecialFunctions.logbeta(α + r, β + x) - SpecialFunctions.loggamma(x + 1) - SpecialFunctions.loggamma(r) - SpecialFunctions.logbeta(α, β)
-              
-    return exp(log_pdf)
+    _isnonneginteger_bnb(x) || return 0.0
+    return exp(_logpdf_bnb(d, floor(Int, x)))
 end
 
 function Distributions.logpdf(d::BetaNegBinomial, x::Real)
-    r, α, β = d.r, d.α, d.β
-    if !insupport(d, x)
-        return -Inf
-    end
-    x = round(Int, x)
-    
-    log_pdf = SpecialFunctions.loggamma(r + x) + SpecialFunctions.logbeta(α + r, β + x) - SpecialFunctions.loggamma(x + 1) - SpecialFunctions.loggamma(r) - SpecialFunctions.logbeta(α, β)
-              
-    return log_pdf
+    _isnonneginteger_bnb(x) || return -Inf
+    return _logpdf_bnb(d, floor(Int, x))
 end
 
 function Distributions.quantile(d::BetaNegBinomial, p::Real)
-
-    if p < 0 || p > 1
-        throw(DomainError(p, "p must be between 0 and 1"))
-    end
+    (0 <= p <= 1) || throw(DomainError(p, "p must be in [0, 1]"))
+    p == 0 && return 0
+    p == 1 && return Inf
 
     lo = 0
     hi = 10
     while cdf(d, hi) < p
         hi *= 2
     end
-    
-    # binary search
+
     while lo < hi
         mid = div(lo + hi, 2)
         if cdf(d, mid) < p
@@ -137,15 +125,14 @@ function Distributions.quantile(d::BetaNegBinomial, p::Real)
             hi = mid
         end
     end
-    
+
     return lo
 end
 
 function Distributions.cf(d::BetaNegBinomial, t)
     r, α, β = d.r, d.α, d.β
-    gamma_factor = SpecialFunctions.gamma(α + r) / (SpecialFunctions.gamma(α) * SpecialFunctions.gamma(r))
-    hypergeo_factor = HypergeometricFunctions._₂F₁(r , β, α + β + r, exp(im * t))
-    gamma_factor / hypergeo_factor
+    beta_factor = exp(SpecialFunctions.logbeta(α + r, β) - SpecialFunctions.logbeta(α, β))
+    return beta_factor * HypergeometricFunctions._₂F₁(r, β, α + β + r, exp(im * t))
 end
 
 ## sampling 

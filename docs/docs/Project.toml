@@ -1,6 +1,0 @@
-[deps]
-AdditionalDistributions = "6655a985-646a-4595-ab89-59c8a6085518"
-Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
-Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-DocumenterVitepress = "4710194d-e776-4893-9690-8d956a29c365"
-GR = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"

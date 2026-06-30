@@ -71,10 +71,11 @@ StatsBase.kurtosis(d::Lomax) = d.α > 4 ? (6 *(d.α^3 + d.α^2 - 6*d.α - 2))/(d
 #### evaluate functions CDF, PDF, logPDF, quantile
 
 function Distributions.cdf(d::Lomax, x::Real)
-    insupport(d, x) || return 0.0
-    α, λ = d.α, d.λ
-    # 1 - (1 + x/λ)^(-α)  →  numéricamente: -expm1(-α*log1p(x/λ))
-    return -expm1(-α * log1p(x / λ))
+    T = promote_type(typeof(float(x)), typeof(float(d.α)), typeof(float(d.λ)))
+    (x < 0) && return zero(T)
+    α, λ = T(d.α), T(d.λ)
+    xx = T(x)
+    return -expm1(-α * log1p(xx / λ))
 end
 
 function Distributions.pdf(d::Lomax, x::Real)
@@ -90,12 +91,15 @@ function Distributions.logpdf(d::Lomax, x::Real)
 end
 
 function Distributions.quantile(d::Lomax, p::Real)
-    (0.0 ≤ p ≤ 1.0) || throw(DomainError(p, "p ∈ [0,1]"))
-    p == 0.0 && return 0.0
-    p == 1.0 && return Inf
-    α, λ = d.α, d.λ
-    # λ * ((1 - p)^(-1/α) - 1) → estable: λ * expm1( -log1p(-p)/α )
-    return λ * expm1(-log1p(-p) / α)
+    (0 ≤ p ≤ 1) || throw(DomainError(p, "p ∈ [0,1]"))
+    T = promote_type(typeof(float(p)), typeof(float(d.α)), typeof(float(d.λ)))
+    pp = T(p)
+    iszero(pp) && return zero(T)
+    isone(pp)  && return oftype(T, Inf)
+
+    α, λ = T(d.α), T(d.λ)
+    # λ * ((1 - p)^(-1/α) - 1) → stable: λ * expm1( -log1p(-p)/α )
+    return λ * expm1(-log1p(-pp) / α)
 end
 
 ## sampling 

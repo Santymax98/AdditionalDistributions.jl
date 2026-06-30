@@ -52,6 +52,11 @@ end
     M.check(Burr(0.2, 0.3, 0.4))
 end
 
+@testitem "Generic – CrystalBall" tags=[:Generic, :Continuous, :CrystalBall] setup=[M] begin
+    M.check(CrystalBall(1.5, 3.5, 0.0, 1.0))
+    M.check(CrystalBall(2.0, 5.0, 1.0, 0.5))
+end
+
 @testitem "Generic – Dagum" tags=[:Generic, :Continuous, :Dagum] setup=[M] begin
     M.check(Dagum(0.5, 1.5, 2.5))
     M.check(Dagum(2.0, 3.0, 4.0))
@@ -62,6 +67,12 @@ end
     M.check(Gompertz(0.5, 1.5))
     M.check(Gompertz(2.0, 3.0))
     M.check(Gompertz(0.1, 0.2))
+end
+
+@testitem "Generic – IrwinHall" tags=[:Generic, :Continuous, :IrwinHall] setup=[M] begin
+    M.check(IrwinHall(2))
+    M.check(IrwinHall(4, -1.0, 1.0))
+    M.check(IrwinHall(10, 2.0, 5.0))
 end
 
 @testitem "Generic – Lomax" tags=[:Generic, :Continuous, :Lomax] setup=[M] begin

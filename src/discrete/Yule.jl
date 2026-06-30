@@ -37,7 +37,7 @@ Yule() = Yule{Float64}(1)
 @distr_support Yule 1 Inf
 
 # Parameters
-params(d::Yule) = d.a
+params(d::Yule) = (d.a,)
 @inline partype(d::Yule{T}) where {T<:Real} = T
 
 Base.eltype(::Type{Yule{T}}) where {T} = T
@@ -54,7 +54,7 @@ function Distributions.cdf(d::Yule, x::Real)
     if !insupport(d, x)
         return 0.0
     end
-    x = round(Int, x)
+    x = floor(Int, x)
 
     return 1 - x * SpecialFunctions.beta(x, a+1)
 end
@@ -64,7 +64,7 @@ function Distributions.pdf(d::Yule, x::Real)
     if !insupport(d, x)
         return 0.0
     end
-    x = round(Int, x)
+    x = floor(Int, x)
 
     return a * SpecialFunctions.beta(x, a+1)
 end
@@ -72,9 +72,9 @@ end
 function Distributions.logpdf(d::Yule, x::Real)
     a = d.a
     if !insupport(d, x)
-        return 0.0
+        return -Inf
     end
-    x = round(Int, x)
+    x = floor(Int, x)
 
     return log(a) + SpecialFunctions.logbeta(x, a+1)
 end

@@ -36,7 +36,7 @@ FlorySchulz() = FlorySchulz{Float64}(0.5)
 @distr_support FlorySchulz 1 Inf
 
 # Parameters
-params(d::FlorySchulz) = d.a
+params(d::FlorySchulz) = (d.a,)
 @inline partype(d::FlorySchulz{T}) where {T<:Real} = T
 
 Base.eltype(::Type{FlorySchulz{T}}) where {T} = T
@@ -54,7 +54,7 @@ function Distributions.cdf(d::FlorySchulz, x::Real)
     if !insupport(d, x)
         return 0.0
     end
-    x = round(Int, x)
+    x = floor(Int, x)
     
     return 1 - (1 - a)^x * (1 + a*x)
 end
@@ -64,7 +64,7 @@ function Distributions.pdf(d::FlorySchulz, x::Real)
     if !insupport(d, x)
         return 0.0
     end
-    x = round(Int, x)
+    x = floor(Int, x)
 
     return a^2 * x * (1 - a)^(x-1)
 end
@@ -72,9 +72,9 @@ end
 function Distributions.logpdf(d::FlorySchulz, x::Real)
     a = d.a
     if !insupport(d, x)
-        return 0.0
+        return -Inf
     end
-    x = round(Int, x)
+    x = floor(Int, x)
     return 2 * log(a) + log(x) + (x-1)*log(1 - a) 
 end
 

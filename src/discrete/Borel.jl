@@ -35,7 +35,7 @@ Borel() = Borel{Float64}(0)
 @distr_support Borel 1 Inf
 
 # Parameters
-params(d::Borel) = d.a
+params(d::Borel) = (d.a,)
 @inline partype(d::Borel{T}) where {T<:Real} = T
 
 Base.eltype(::Type{Borel{T}}) where {T} = T
@@ -51,7 +51,7 @@ function Distributions.cdf(d::Borel, x::Real)
     if !insupport(d, x)
         return 0.0
     end
-    x = round(Int, x)
+    x = floor(Int, x)
     cdf_value = 0.0
     for k in 1:x
         log_pdf = -a * k + (k-1)*log(a * k) - SpecialFunctions.loggamma(k + 1)
@@ -65,7 +65,7 @@ function Distributions.pdf(d::Borel, x::Real)
     if !insupport(d, x)
         return 0.0
     end
-    x = round(Int, x)
+    x = floor(Int, x)
     pdf_value = -a * x + (x-1)*log(a * x) - SpecialFunctions.loggamma(x + 1)
     return exp(pdf_value)
 end
@@ -73,9 +73,9 @@ end
 function Distributions.logpdf(d::Borel, x::Real)
     a = d.a
     if !insupport(d, x)
-        return 0.0
+        return -Inf
     end
-    x = round(Int, x)
+    x = floor(Int, x)
     return -a * x + (x-1) * log(a * x) - SpecialFunctions.logfactorial(x)
 end
 

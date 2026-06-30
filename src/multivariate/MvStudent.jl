@@ -40,6 +40,7 @@ Distributions.pdf(d::MvTStudent, x::AbstractVector) = Distributions.pdf(d.dist, 
 Distributions.logpdf(d::MvTStudent, x::AbstractVector) = Distributions.logpdf(d.dist, x)
 Distributions.rand(rng::Distributions.AbstractRNG, d::MvTStudent) = Distributions.rand(rng, d.dist)
 Distributions.insupport(d::MvTStudent, x::AbstractVector) = Distributions.insupport(d.dist, x)
+params(d::MvTStudent) = (d.dist.df, d.dist.μ, d.dist.Σ)
 
 # ───────────────────────────────
 # CDF by GENZ-BRETZ
@@ -55,9 +56,9 @@ function Distributions.cdf(d::MvTStudent,
                            antithetic::Bool=false)
 
     n = length(a); @assert length(b) == n
-    μ = Statistics.mean(d)              # location
-    Σscale = d.dist.Σ                   # scatter (no cov)
-    ν = Int(round(d.dist.df))
+    μ = d.dist.μ                       # location, also defined when ν ≤ 1
+    Σscale = d.dist.Σ                   # scatter matrix, not covariance
+    ν = d.dist.df
 
     @assert size(Σscale) == (n,n)
     @assert all(b .>= a)

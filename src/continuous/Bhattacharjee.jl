@@ -28,7 +28,8 @@ end
 Bhattacharjee(a::Integer, b::Integer, σ::Integer; check_args::Bool=true) = Bhattacharjee(float(a), float(b), float(σ); check_args=check_args)
 
 function Bhattacharjee(a::Real, b::Real, σ::Real; check_args::Bool=true)
-    @check_args Bhattacharjee (a < b) (σ >= zero(σ))
+    a, b, σ = promote(a, b, σ)
+    @check_args Bhattacharjee (b, a < b) (σ, σ > zero(σ))
     return Bhattacharjee{typeof(a)}(a, b, σ)
 end
 

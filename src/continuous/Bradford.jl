@@ -36,7 +36,7 @@ Bradford() = Bradford{Float64}(1)
 @distr_support Bradford 0.0 1.0
 
 # Parameters
-params(d::Bradford) = d.a
+params(d::Bradford) = (d.a,)
 @inline partype(d::Bradford{T}) where {T<:Real} = T
 
 Base.eltype(::Type{Bradford{T}}) where {T} = T

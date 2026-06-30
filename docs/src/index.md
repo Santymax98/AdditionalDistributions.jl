@@ -3,10 +3,19 @@
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
 
+title: AdditionalDistributions.jl Documentation
+
+description: Official documentation for AdditionalDistributions.jl, a Julia package providing additional discrete, continuous, and multivariate probability distributions compatible with Distributions.jl.
+
+head:
+  - - link
+    - rel: canonical
+      href: https://santymax98.github.io/AdditionalDistributions.jl/stable/
+
 hero:
   name: AdditionalDistributions.jl
-  text:
-  tagline: An extension of Distributions.jl package. 
+  text: Official documentation
+  tagline: Additional probability distributions for Julia.
   image:
     src: logo.png
     alt: AdditionalDistributions.jl
@@ -15,7 +24,7 @@ hero:
       text: Getting started
       link: getting_started
     - theme: alt
-      text: View on Github
+      text: View on GitHub
       link: https://github.com/Santymax98/AdditionalDistributions.jl
     - theme: alt
       text: Bestiary
@@ -24,8 +33,8 @@ hero:
 ````
 # Welcome to AdditionalDistributions.jl
 
-The [*AdditionalDistributions.jl*](https://github.com/Santymax98/AdditionalDistributions.jl) package is a comprehensive extension of [*Distributions.jl*](https://github.com/JuliaStats/Distributions.jl), designed to expand its functionality by incorporating both **discrete**, **continuous**, and **multivariate** probability distributions not available in the base package.
-It provides a unified, research-grade framework for probabilistic modeling, simulation, and numerical evaluation of advanced statistical distributions.
+The [*AdditionalDistributions.jl*](https://github.com/Santymax98/AdditionalDistributions.jl) package extends [*Distributions.jl*](https://github.com/JuliaStats/Distributions.jl) with additional **discrete**, **continuous**, and **multivariate** probability distributions not available in the base package.
+It provides implementations of the core `Distributions.jl` interface for probabilistic modeling, simulation, and numerical evaluation.
 
 ---
 

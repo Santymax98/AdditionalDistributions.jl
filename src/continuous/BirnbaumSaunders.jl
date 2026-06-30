@@ -29,7 +29,8 @@ end
 BirnbaumSaunders(μ::Integer, α::Integer, β::Integer; check_args::Bool=true) = BirnbaumSaunders(float(μ), float(α), float(β); check_args=check_args)
 
 function BirnbaumSaunders(μ::Real, α::Real, β::Real; check_args::Bool=true)
-    @check_args BirnbaumSaunders (α, α >= zero(α)) (β, β >= zero(β))
+    @check_args BirnbaumSaunders (α, α > zero(α)) (β, β > zero(β))
+    μ, α, β = promote(μ, α, β)
     return BirnbaumSaunders{typeof(α)}(μ, α, β)
 end
 
@@ -56,11 +57,11 @@ Base.eltype(::Type{BirnbaumSaunders{T}}) where {T} = T
 
 Statistics.mean(d::BirnbaumSaunders) = d.μ + d.β * (1 + (d.α^2/2))
 
-Statistics.var(d::BirnbaumSaunders) = (d.α * d.β)^2 * (1 + (5 * α^2)/4)
+Statistics.var(d::BirnbaumSaunders) = (d.α * d.β)^2 * (1 + (5 * d.α^2) / 4)
 
 StatsBase.skewness(d::BirnbaumSaunders) = (4 * d.α * (11 * d.α^2 + 6))/(5 * d.α^2 + 4)^(3/2)
 
-StatsBase.kurtosis(d::BirnbaumSaunders) = 3 + (6 * d.α * (93 * d.α^2 + 40))/(5 * d.α^2 + 4)^2
+StatsBase.kurtosis(d::BirnbaumSaunders) = 3 + (6 * d.α^2 * (93 * d.α^2 + 40)) / (5 * d.α^2 + 4)^2
 #### evaluate functions CDF, PDF, logPDF an CF
 
 function Distributions.cdf(d::BirnbaumSaunders, x::Real)
@@ -108,7 +109,7 @@ end
 ## sampling 
 function Distributions.rand(rng::Distributions.AbstractRNG, d::BirnbaumSaunders)
     μ, α, β = d.μ, d.α, d.β
-    X = Distributions.rand(rng, Normal(0, α^2 /4.0))
+    X = Distributions.rand(rng, Distributions.Normal(0, α / 2))
     T = β*(1 + 2 * X^2 + 2 * X * sqrt(1 + X^2))
     return μ + T
 end

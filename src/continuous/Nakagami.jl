@@ -52,7 +52,7 @@ spread(d::Nakagami) = d.Ω
 
 Statistics.mean(d::Nakagami) = (SpecialFunctions.gamma(d.m + 0.5)/SpecialFunctions.gamma(d.m)) * (d.Ω/d.m)^(1/2)
 Statistics.var(d::Nakagami) = d.Ω * (1 - (1/d.m) * ((SpecialFunctions.gamma(d.m + 0.5))/SpecialFunctions.gamma(d.m))^2)
-Statistics.median(d::Nakagami) = sqrt((d.Ω/d.m) * SpecialFunctions.gamma_inc_inv(m, 0.5, 0.5))
+Statistics.median(d::Nakagami) = Distributions.quantile(d, 0.5)
 StatsBase.mode(d::Nakagami) = ((2*d.m - 1)*d.Ω / (2*d.m))^(1/2)
 #### evaluate functions CDF, PDF, logPDF, quantile
 

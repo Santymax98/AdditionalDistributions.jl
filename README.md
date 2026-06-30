@@ -7,13 +7,19 @@
 
 ---
 
+## Documentation
+
+The official documentation is available at:
+
+https://santymax98.github.io/AdditionalDistributions.jl/stable/
+
+---
+
 **AdditionalDistributions.jl** extends the [Distributions.jl](https://github.com/JuliaStats/Distributions.jl)
 ecosystem by providing additional discrete, continuous, and multivariate probability
 distributions that are not yet available in the base package.
 
-It maintains full API compatibility (`pdf`, `cdf`, `rand`, etc.) and emphasizes
-**accuracy, efficiency, and completeness** — integrating advanced cumulative
-probability algorithms for multivariate Gaussian and Student’s *t* models.
+It implements the core `Distributions.jl` interface (`pdf`, `cdf`, `rand`, etc.) for a growing collection of distributions and includes cumulative probability algorithms for multivariate Gaussian and Student’s *t* models.
 
 ---
 
@@ -23,7 +29,7 @@ probability algorithms for multivariate Gaussian and Student’s *t* models.
 - ⚡ **High-performance QMC algorithms** for multivariate CDFs (`MvGaussian`, `MvTStudent`),  
   significantly faster than [MvNormalCDF.jl](https://github.com/JuliaStats/MvNormalCDF.jl)
   with minimal loss in absolute precision (typically within `1e-5`–`1e-6`).
-- 🧮 **Full API compatibility** with `Distributions.jl`.
+- 🧮 **Core API compatibility** with `Distributions.jl`.
 - 🧩 **Research-oriented architecture**, extensible to new distributional forms.
 - 🧠 **Reproducibility-focused testing**, with benchmarks aligned with *mvtnorm* (R, Genz & Bretz 2002).
 

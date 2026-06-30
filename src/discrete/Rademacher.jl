@@ -1,97 +1,44 @@
 """
     Rademacher()
 
-A *Rademacher distribution* is a discrete probability distribution where a random variate ``X`` has a ``50\\%`` chance of being ``+1`` and a ``50\\%`` chance of being ``-1``.
-
-```math
-P(X = k) = \\begin{cases}
-0.5 & \\quad \\text{for } k = -1, \\\\
-0.5 & \\quad \\text{for } k = +1.
-\\end{cases}
-```
-
-```julia
-Rademacher()    # Rademacher distribution 
-```
-
-External link:
-
-* [Rademacher distribution on Wikipedia](https://en.wikipedia.org/wiki/Rademacher_distribution)
+Rademacher distribution with probability `1/2` at `-1` and probability `1/2` at `1`.
 """
 struct Rademacher <: Distributions.DiscreteUnivariateDistribution
 end
 
 @distr_support Rademacher -1 1
 
-# params
-params(d::Rademacher) = (println("non-params"))
-# statistics 
-Statistics.mean(d::Rademacher) = 0
-Statistics.var(d::Rademacher) = 1
-Statistics.median(d::Rademacher) = 0
-StatsBase.mode(d::Rademacher) = NaN
-StatsBase.skewness(d::Rademacher) = 0
-StatsBase.kurtosis(d::Rademacher) = -2
-StatsBase.entropy(d::Rademacher) = log(2)
+params(::Rademacher) = ()
+Statistics.mean(::Rademacher) = 0
+Statistics.var(::Rademacher) = 1
+Statistics.median(::Rademacher) = 0
+StatsBase.mode(::Rademacher) = NaN
+StatsBase.skewness(::Rademacher) = 0
+StatsBase.kurtosis(::Rademacher) = -2
+StatsBase.entropy(::Rademacher) = log(2)
 
-#evaluate functions CDF, PDF, logPDF, MGF, CF, Quantil
-function Distributions.cdf(d::Rademacher, x::Real) 
-    if !insupport(d, x)
-        return 0.0
-    end
-    x = round(Int, x)
-    if x < 1
-        return 0.5
-    else
-        return 1.0
-    end
-end
-# pdf 
-function Distributions.pdf(d::Rademacher, x::Real)
-    if !insupport(d, x)
-        return 0.0
-    end
-    x = floor(x)
-    if x == 0
-        println("zero does not belong to Rademacher distribution support")
-        return 0.0
-    else
-        return 0.5
-    end
+function Distributions.cdf(::Rademacher, x::Real)
+    x < -1 && return 0.0
+    x < 1 && return 0.5
+    return 1.0
 end
 
-function Distributions.logpdf(d::Rademacher, x::Real)
-    if !insupport(d, x)
-        return -Inf
-    end
-    x = floor(x)
-    values = [-1, 0, 1]
-    if x in values
-        return log(0.5)
-    else
-        return -Inf
-    end
+function Distributions.pdf(::Rademacher, x::Real)
+    return (x == -1 || x == 1) ? 0.5 : 0.0
 end
 
-function Distributions.mgf(d::Rademacher, t)
-    return cosh(t)
+function Distributions.logpdf(::Rademacher, x::Real)
+    return (x == -1 || x == 1) ? log(0.5) : -Inf
 end
 
-function Distributions.cf(d::Rademacher, t)
-    return cos(t)    
+Distributions.mgf(::Rademacher, t) = cosh(t)
+Distributions.cf(::Rademacher, t) = cos(t)
+
+function Distributions.quantile(::Rademacher, p::Real)
+    (0 <= p <= 1) || throw(DomainError(p, "p must be in [0, 1]"))
+    return p <= 0.5 ? -1 : 1
 end
 
-function Distributions.quantile(d::Rademacher, p::Real)
-    if p < 0 || p > 1
-        throw(DomainError(p, "p must be in [0, 1]"))
-    elseif p <= 0.5
-        return -1
-    else
-        return 1
-    end
-end
-
-# sampling
-function Distributions.rand(rng::Distributions.AbstractRNG, d::Rademacher)
+function Distributions.rand(rng::Distributions.AbstractRNG, ::Rademacher)
     return rand(rng, Bool) ? 1 : -1
 end

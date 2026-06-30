@@ -28,6 +28,7 @@ Alpha(α::Integer, β::Integer; check_args::Bool=true) = Alpha(float(α), float(
 
 function Alpha(α::Real, β::Real; check_args::Bool=true)
     @check_args Alpha (α, α > zero(α)) (β, β > zero(β))
+    α, β = promote(α, β)
     return Alpha{typeof(α)}(α, β)
 end
 
@@ -93,6 +94,6 @@ end
 ## sampling 
 function Distributions.rand(rng::Distributions.AbstractRNG, d::Alpha)
     α, β = d.α, d.β
-    Y = rand(rng, Distributions.truncated(normal_dist; lower=0.0))  # d0 truncated to the interval [l, u]
-    return β/(Y + α)
+    Y = rand(rng, Distributions.truncated(Distributions.Normal(α, 1); lower=0.0))
+    return β / Y
 end

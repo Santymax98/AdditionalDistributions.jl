@@ -37,6 +37,7 @@ Distributions.pdf(d::MvGaussian, x::AbstractVector)    = Distributions.pdf(d.dis
 Distributions.logpdf(d::MvGaussian, x::AbstractVector) = Distributions.logpdf(d.dist, x)
 Distributions.rand(rng::Distributions.AbstractRNG, d::MvGaussian) = Distributions.rand(rng, d.dist)
 Distributions.insupport(d::MvGaussian, x::AbstractVector)         = Distributions.insupport(d.dist, x)
+params(d::MvGaussian) = (Statistics.mean(d), Statistics.cov(d))
 
 # MvGaussian.jl
 function Distributions.cdf(d::MvGaussian,

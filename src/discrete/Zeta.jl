@@ -28,53 +28,42 @@ function Zeta(s::Real; check_args::Bool=true)
     return Zeta{typeof(s)}(s)
 end
 
-Zeta() = Zeta{Float64}(1)
+Zeta() = Zeta(2.0)
 
 @distr_support Zeta 1 Inf
 
 # parameters
-params(d::Zeta) = d.s
+params(d::Zeta) = (d.s,)
 # statistics 
 Statistics.mean(d::Zeta) = d.s > 2 ? SpecialFunctions.zeta(d.s - 1)/SpecialFunctions.zeta(d.s) : NaN
-Statistics.var(d::Zeta) = d.s > 3 ? (SpecialFunctions.zeta(d.s) * SpecialFunctions(d.s - 2) - SpecialFunctions.zeta(d.s - 1)^2)/SpecialFunctions.zeta(d.s)^2 : NaN
+Statistics.var(d::Zeta) = d.s > 3 ? (SpecialFunctions.zeta(d.s) * SpecialFunctions.zeta(d.s - 2) - SpecialFunctions.zeta(d.s - 1)^2)/SpecialFunctions.zeta(d.s)^2 : NaN
 #Statistics.median(d::Zeta) = 
 StatsBase.mode(d::Zeta) = 1 
 
 #evaluate functions CDF, PDF, logPDF, Quantil
 function Distributions.cdf(d::Zeta, x::Real)
-    s = d.s
-    if !insupport(d, x)
-        return 0.0
-    end
-    
-    x = round(Int, x)
-    
-    num = harmonic(x, s)
-    den = SpecialFunctions.zeta(s)
+    x == Inf && return 1.0
+    !isfinite(x) && return 0.0
+    x < 1 && return 0.0
+
+    k = floor(Int, x)
+    num = harmonic(k, d.s)
+    den = SpecialFunctions.zeta(d.s)
     return num / den
 end
+
+@inline _isposinteger_zeta(x::Real) = isfinite(x) && x >= 1 && x == floor(x)
 
 function Distributions.pdf(d::Zeta, x::Real)
-    s = d.s
-    if !insupport(d, x)
-        return 0.0
-    end
-    x = round(Int, x)
-    num = 1 / x^s
-    den = Distributions.zeta(s)
-    return num / den
+    _isposinteger_zeta(x) || return 0.0
+    k = floor(Int, x)
+    return inv(k^d.s * SpecialFunctions.zeta(d.s))
 end
 
-
 function Distributions.logpdf(d::Zeta, x::Real)
-    s = d.s
-    if !insupport(d, x)
-        return -Inf
-    end
-    x = round(Int, x)
-    term1 = -s * log(x)
-    term2 = log(Distributions.zeta(s))
-    return term1 - term2
+    _isposinteger_zeta(x) || return -Inf
+    k = floor(Int, x)
+    return -d.s * log(k) - log(SpecialFunctions.zeta(d.s))
 end
 
 function Distributions.quantile(d::Zeta, p::Real)

@@ -1,8 +1,8 @@
 name = "AdditionalDistributions"
 uuid = "6655a985-646a-4595-ab89-59c8a6085518"
-version = "0.1.1"
+version = "0.1.3"
 authors = ["Santiago Jimenez Ramos <santymax9807@gmail.com>"]
-description = "A collection of additional probability distributions not included in Distributions.jl, fully compatible with its API."
+description = "Additional probability distributions for Julia, implementing the core Distributions.jl interface."
 
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"

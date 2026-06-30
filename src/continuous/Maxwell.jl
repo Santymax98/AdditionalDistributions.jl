@@ -35,7 +35,7 @@ Maxwell() = Maxwell{Float64}(1)
 @distr_support Maxwell 0.0 Inf
 
 # Parameters
-params(d::Maxwell) = d.a
+params(d::Maxwell) = (d.a,)
 @inline partype(d::Maxwell{T}) where {T<:Real} = T
 
 Base.eltype(::Type{Maxwell{T}}) where {T} = T

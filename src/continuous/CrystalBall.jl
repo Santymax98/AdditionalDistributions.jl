@@ -1,161 +1,123 @@
 """
     CrystalBall(α, m, x̄, σ)
 
-A *CrystalBall* distribution is commonly used to model various lossy processes in high-energy physics. The probability density function (PDF) of the Crystal Ball distribution is defined as:
+Crystal Ball distribution with shape parameters `α > 0`, `m > 1`, location `x̄`, and scale `σ > 0`.
 
-```math
-f(x; \\alpha, n, \\bar{x}, \\sigma) =
-\\begin{cases} 
-N \\cdot \\exp\\left(-\\frac{(x - \\bar{x})^2}{2\\sigma^2}\\right), & \\text{for } \\frac{x - \\bar{x}}{\\sigma} > -\\alpha \\
-N \\cdot A \\cdot \\left(B - \\frac{x - \\bar{x}}{\\sigma}\\right)^{-n}, & \\text{for } \\frac{x - \\bar{x}}{\\sigma} ≤ -\\alpha
-\\end{cases}
-```
-where:
-* ``A = \\left(\\frac{n}{|\\alpha|}\\right)^n \\cdot \\exp\\left(-\\frac{|\\alpha|^2}{2}\\right)``
-* ``B = \\frac{n}{|\\alpha|} - |\\alpha|``
-* ``N = \\frac{1}{\\sigma(C + D)}``
-* ``C = \\frac{n}{|\\alpha|} \\cdot \\frac{1}{n - 1} \\cdot \\exp\\left(-\\frac{|\\alpha|^2}{2}\\right)``
-* ``D = \\sqrt{\\frac{\\pi}{2}} \\left(1 + \\text{erf}\\left(\\frac{|\\alpha|}{\\sqrt{2}}\\right)\\right)``
+The density is Gaussian to the right of `z = -α` and has a power-law left tail, where `z = (x - x̄) / σ`.
 
 ```julia
 CrystalBall(α, m)        # equivalent to CrystalBall(α, m, 0, 1)
 CrystalBall(α, m, x̄)     # equivalent to CrystalBall(α, m, x̄, 1)
-
-params(d)        # Get the parameters, i.e. (α, m, x̄, σ)
+params(d)                # returns (α, m, x̄, σ)
 ```
-
-External links:
-
-* [CrystalBall distribution on Wikipedia](https://en.wikipedia.org/wiki/Crystal_Ball_function)
 """
 struct CrystalBall{T<:Real} <: Distributions.ContinuousUnivariateDistribution
     α::T # shape
     m::T # shape
     x̄::T # location
-    σ::T # scale 
+    σ::T # scale
     CrystalBall{T}(α, m, x̄, σ) where {T<:Real} = new{T}(α, m, x̄, σ)
 end
 
-# Constructor for integer inputs
-CrystalBall(α::Integer, m::Integer, x̄::Integer, σ::Integer; check_args::Bool=true) = CrystalBall(float(α), float(m), float(x̄), float(σ); check_args=check_args)
+CrystalBall(α::Integer, m::Integer, x̄::Integer, σ::Integer; check_args::Bool=true) =
+    CrystalBall(float(α), float(m), float(x̄), float(σ); check_args=check_args)
 
-# Main constructor with argument checking
 function CrystalBall(α::Real, m::Real, x̄::Real, σ::Real; check_args::Bool=true)
+    α, m, x̄, σ = promote(α, m, x̄, σ)
     @check_args CrystalBall (α, α > zero(α)) (m, m > one(m)) (σ, σ > zero(σ))
     return CrystalBall{typeof(α)}(α, m, x̄, σ)
 end
 
-CrystalBall(α, m) = CrystalBall{Float64}(α, m, 0, 1)
-CrystalBall(α, m, x̄) = CrystalBall{Float64}(α, m, x̄, 1)
+CrystalBall(α, m) = CrystalBall(α, m, 0, 1)
+CrystalBall(α, m, x̄) = CrystalBall(α, m, x̄, 1)
 
 @distr_support CrystalBall -Inf Inf
 
-# Parameters
 params(d::CrystalBall) = (d.α, d.m, d.x̄, d.σ)
 @inline partype(d::CrystalBall{T}) where {T<:Real} = T
-
 Base.eltype(::Type{CrystalBall{T}}) where {T} = T
-#Location, scale and shape
+
 location(d::CrystalBall) = d.x̄
 shape(d::CrystalBall) = (d.α, d.m)
 scale(d::CrystalBall) = d.σ
 
-A(d::CrystalBall) = (d.m/abs(d.α))^d.m * exp(-abs(d.α)^2 / 2)
-B(d::CrystalBall) = d.m/abs(d.α) - abs(d.α)
-C(d::CrystalBall) = d.m/abs(d.α) * 1/(d.m - 1) * exp(-abs(d.α)^2 / 2)
-D(d::CrystalBall) = sqrt(π/2) * (1 + SpecialFunctions.erf(abs(d.σ)/sqrt(2)))
-N(d::CrystalBall) = 1/(d.σ * (C(d) + D(d)))
+A(d::CrystalBall) = (d.m / abs(d.α))^d.m * exp(-abs(d.α)^2 / 2)
+B(d::CrystalBall) = d.m / abs(d.α) - abs(d.α)
+C(d::CrystalBall) = d.m / (abs(d.α) * (d.m - 1)) * exp(-abs(d.α)^2 / 2)
+D(d::CrystalBall) = sqrt(π / 2) * (1 + SpecialFunctions.erf(abs(d.α) / sqrt(2)))
+N(d::CrystalBall) = inv(d.σ * (C(d) + D(d)))
 
-# (mean and variance)
 function moments(d::CrystalBall, k::Integer)
     α, m, x̄, σ = d.α, d.m, d.x̄, d.σ
-    n = N(d)
-    # gaussian integrate
+    m <= k + 1 && return NaN
+
     bound = x̄ - α * σ
-    normal_part, _ = QuadGK.quadgk(x -> x^k * exp(-1/2 * ((x - x̄)/σ)^2), bound, Inf)
-    
-    # LAW POW integrate
-    power_part, _ = QuadGK.quadgk(x -> x^k * A(d) * (B(d) - (x - x̄)/σ)^(-m), -Inf, bound)
-    
-    return n * (normal_part + power_part)
+    normal_part, _ = QuadGK.quadgk(x -> x^k * exp(-((x - x̄) / σ)^2 / 2), bound, Inf)
+    power_part, _ = QuadGK.quadgk(x -> x^k * A(d) * (B(d) - (x - x̄) / σ)^(-m), -Inf, bound)
+
+    return N(d) * (normal_part + power_part)
 end
 
-Statistics.mean(d::CrystalBall) = moments(d, 1)
-Statistics.var(d::CrystalBall) = moments(d, 2) - moments(d, 1)^2
+Statistics.mean(d::CrystalBall) = d.m > 2 ? moments(d, 1) : NaN
+Statistics.var(d::CrystalBall) = d.m > 3 ? moments(d, 2) - moments(d, 1)^2 : NaN
 
-# Evaluate functions CDF, PDF, logPDF, quantile
 function Distributions.cdf(d::CrystalBall, x::Real)
     α, m, x̄, σ = d.α, d.m, d.x̄, d.σ
-    z = (x - x̄)/σ
-    n = N(d)
-    _insupport = insupport(d, x)
-    if _insupport
-        if z > -α
-            return n * σ * (sqrt(π/2) * (SpecialFunctions.erf(z/sqrt(2)) + SpecialFunctions.erf(α/sqrt(2))) + m * exp(-α^2 / 2))/(α * (m - 1))
-        else
-            return n * A(d) * σ * (B(d) - z)^(1-m) /(m - 1)
-        end
+    x == -Inf && return zero(partype(d))
+    x == Inf && return one(partype(d))
+
+    z = (x - x̄) / σ
+    if z <= -α
+        return N(d) * σ * A(d) * (B(d) - z)^(1 - m) / (m - 1)
     else
-        return 0.0
-    end 
+        gaussian_mass = sqrt(π / 2) * (SpecialFunctions.erf(z / sqrt(2)) + SpecialFunctions.erf(α / sqrt(2)))
+        return N(d) * σ * (C(d) + gaussian_mass)
+    end
 end
 
 function Distributions.pdf(d::CrystalBall, x::Real)
     α, m, x̄, σ = d.α, d.m, d.x̄, d.σ
-    z = (x - x̄)/σ
-    n = N(d)
-    _insupport = insupport(d, x)
-    if _insupport
-        if z > -α
-            return n * exp(-1/2 * z^2)
-        else
-            return n * A(d) * (B(d) - z)^(-m)
-        end
+    !isfinite(x) && return zero(partype(d))
+
+    z = (x - x̄) / σ
+    if z > -α
+        return N(d) * exp(-z^2 / 2)
     else
-        return 0.0
-    end 
+        return N(d) * A(d) * (B(d) - z)^(-m)
+    end
 end
 
 function Distributions.logpdf(d::CrystalBall, x::Real)
     α, m, x̄, σ = d.α, d.m, d.x̄, d.σ
-    z = (x - x̄)/σ
-    n = N(d)
-    _insupport = insupport(d, x)
-    if _insupport
-        if z > -α
-            return log(n) - 1/2 * z^2
-        else
-            return log(n) + log(A(d)) -m * log(B(d) - z)
-        end
+    !isfinite(x) && return -Inf
+
+    z = (x - x̄) / σ
+    if z > -α
+        return log(N(d)) - z^2 / 2
     else
-        return 0.0
-    end 
+        return log(N(d)) + log(A(d)) - m * log(B(d) - z)
+    end
 end
 
 function Distributions.quantile(d::CrystalBall, p::Real)
+    (0 <= p <= 1) || throw(DomainError(p, "p must be in [0, 1]"))
+    p == 0 && return -Inf
+    p == 1 && return Inf
+
     α, m, x̄, σ = d.α, d.m, d.x̄, d.σ
-    cdf_func(x) = Distributions.cdf(d, x) - p
-    lower_bound = x̄ - 1e6 * σ
-    upper_bound = x̄ + 1e6 * σ
-    x = Roots.find_zero(cdf_func, [lower_bound, upper_bound], Roots.Brent())
-    return x
+    tail_mass = C(d) / (C(d) + D(d))
+
+    if p <= tail_mass
+        z = B(d) - ((p * (m - 1)) / (N(d) * σ * A(d)))^(inv(1 - m))
+    else
+        erf_arg = (p / (N(d) * σ) - C(d)) / sqrt(π / 2) - SpecialFunctions.erf(α / sqrt(2))
+        erf_arg = clamp(erf_arg, -one(erf_arg), one(erf_arg))
+        z = sqrt(2) * SpecialFunctions.erfinv(erf_arg)
+    end
+
+    return x̄ + σ * z
 end
 
 function Distributions.rand(rng::Distributions.AbstractRNG, d::CrystalBall)
-    α, m, x̄, σ = d.α, d.m, d.x̄, d.σ
-    while true
-        # Generar candidato de una distribución normal
-        z = rand(rng, normal_dist)
-        if z > -α
-            # Aceptar si está en la parte gaussiana
-            return x̄ + σ * z
-        else
-            # Generar candidato de la cola de ley de potencia
-            u = rand(rng)
-            candidate = x̄ + σ * (B(d) - u^(-1/(m-1)))
-            if rand(rng) < exp(-0.5 * (z^2 - ((B(d) - (candidate - x̄)/σ)^2)))
-                return candidate
-            end
-        end
-    end
+    return Distributions.quantile(d, rand(rng))
 end

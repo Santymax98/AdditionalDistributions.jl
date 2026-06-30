@@ -36,7 +36,7 @@ Logarithmic() = Logarithmic{Float64}(0.5)
 @distr_support Logarithmic 1 Inf
 
 # Parameters
-params(d::Logarithmic) = d.a
+params(d::Logarithmic) = (d.a,)
 @inline partype(d::Logarithmic{T}) where {T<:Real} = T
 
 Base.eltype(::Type{Logarithmic{T}}) where {T} = T
@@ -53,7 +53,7 @@ function Distributions.cdf(d::Logarithmic, x::Real)
     if !insupport(d, x)
         return 0.0
     end
-    x = round(Int, x)
+    x = floor(Int, x)
     ks = 1:x
     s = sum(a .^ ks ./ ks)
     return -s / log(1 - a)
@@ -64,7 +64,7 @@ function Distributions.pdf(d::Logarithmic, x::Real)
     if !insupport(d, x)
         return 0.0
     end
-    x = round(Int, x)
+    x = floor(Int, x)
 
     return -a^x/(x*log(1-a))
 end
@@ -72,9 +72,9 @@ end
 function Distributions.logpdf(d::Logarithmic, x::Real)
     a = d.a
     if !insupport(d, x)
-        return 0.0
+        return -Inf
     end
-    x = round(Int, x)
+    x = floor(Int, x)
     return log(-1/(log(1-a)) * (a^x / x))
 end
 

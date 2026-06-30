@@ -1,7 +1,7 @@
 module AdditionalDistributions
     
     using Distributions
-    import Distributions: @check_args, @distr_support, @inline
+    import Distributions: @check_args, @distr_support, @inline, params, partype
     import Roots
     import SpecialFunctions
     import Random
@@ -67,6 +67,7 @@ module AdditionalDistributions
     include("continuous/CrystalBall.jl")
     include("continuous/Dagum.jl")
     include("continuous/Gompertz.jl")
+    include("continuous/IrwinHall.jl")
     include("continuous/Lomax.jl")
     include("continuous/Maxwell.jl")
     include("continuous/Nakagami.jl")
@@ -85,6 +86,7 @@ module AdditionalDistributions
         CrystalBall,
         Dagum,
         Gompertz,
+        IrwinHall,
         Lomax,
         Maxwell,
         Nakagami,

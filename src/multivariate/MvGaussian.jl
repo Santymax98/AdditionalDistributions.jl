@@ -53,11 +53,20 @@ function Distributions.cdf(d::MvGaussian,
     @assert length(b) == n "length(a) ≠ length(b)"
     Σ = Statistics.cov(d)
     @assert size(Σ) == (n,n) "Σ no es cuadrada de tamaño n×n"
-    if n == 1
-        throw(ErrorException("Σ dimension 1 not supported"))
-    end
+    T = promote_type(Float64, eltype(a), eltype(b), eltype(Statistics.mean(d)), eltype(Statistics.cov(d)))
+
     if any(b .< a)
-        throw(ArgumentError("se encontró a[i] > b[i]"))
+        return full ? (zero(T), zero(T), 0) : zero(T)
+    end
+
+    if n == 1
+        μ1 = Statistics.mean(d)[1]
+        σ1 = sqrt(Statistics.cov(d)[1, 1])
+        val = Distributions.cdf(Distributions.Normal(μ1, σ1), b[1]) -
+            Distributions.cdf(Distributions.Normal(μ1, σ1), a[1])
+
+        val = max(zero(val), min(one(val), val))
+        return full ? (val, zero(val), 0) : val
     end
 
     μ = Statistics.mean(d)

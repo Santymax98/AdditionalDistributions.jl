@@ -61,9 +61,12 @@ function Distributions.cdf(d::MvTStudent,
     ν = d.dist.df
 
     @assert size(Σscale) == (n,n)
-    @assert all(b .>= a)
+    T = promote_type(Float64, eltype(a), eltype(b), eltype(d.dist.μ), eltype(d.dist.Σ))
 
-    T = promote_type(eltype(Σscale), eltype(a), eltype(b), eltype(μ))
+    if any(b .< a)
+        return full ? (zero(T), zero(T), 0) : zero(T)
+    end
+
     Ddiag = sqrt.(LinearAlgebra.diag(Σscale))
     invD  = 1 ./(T.(Ddiag))
     C     = LinearAlgebra.Symmetric(LinearAlgebra.Diagonal(invD) * T.(Σscale) * LinearAlgebra.Diagonal(invD))

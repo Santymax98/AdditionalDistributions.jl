@@ -476,7 +476,7 @@ end
 # emit_julia_dict(res, name="err_ref_t",key=c("i","nu"), val="error", digits=12)
 # ===========================================================
 
-@testitem "Multivariate CDFResult API" begin
+@testitem "Multivariate CDFResult API" tags=[:multivariate] begin
     using LinearAlgebra
     using Distributions
     using AdditionalDistributions

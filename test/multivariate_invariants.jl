@@ -1,4 +1,4 @@
-@testitem "Multivariate CDF invariants – MvGaussian" begin
+@testitem "Multivariate CDF invariants – MvGaussian" tags=[:multivariate] begin
     using LinearAlgebra
     using Distributions
     using Statistics
@@ -63,7 +63,7 @@
 end
 
 
-@testitem "Multivariate CDF invariants – MvTStudent" begin
+@testitem "Multivariate CDF invariants – MvTStudent" tags=[:multivariate] begin
     using LinearAlgebra
     using Distributions
     using AdditionalDistributions

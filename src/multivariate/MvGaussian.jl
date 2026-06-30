@@ -47,7 +47,7 @@ function cdf_result(d::MvGaussian,
                     releps::Real=1e-6,
                     pivot::Bool=true,
                     rng=Random.default_rng(),
-                    antithetic::Bool=true)
+                    antithetic::Bool=false)
 
     n = length(a)
     length(b) == n || throw(DimensionMismatch("length(a) ≠ length(b)"))

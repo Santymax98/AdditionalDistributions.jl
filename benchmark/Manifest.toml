@@ -2,7 +2,7 @@
 
 julia_version = "1.12.0"
 manifest_format = "2.0"
-project_hash = "e44e5aa87628a509b2a521526a0deb9d6c306843"
+project_hash = "f82b22dbfc22e8f472a9d6c0062398f1e424c632"
 
 [[deps.AdditionalDistributions]]
 deps = ["Distributions", "HypergeometricFunctions", "LambertW", "LinearAlgebra", "LogExpFunctions", "Primes", "QuadGK", "Random", "Roots", "SpecialFunctions", "Statistics", "StatsBase"]
@@ -294,6 +294,12 @@ version = "1.2.0"
 [[deps.Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 version = "1.11.0"
+
+[[deps.MvNormalCDF]]
+deps = ["Distributions", "FillArrays", "LinearAlgebra", "Primes", "Random", "StatsBase"]
+git-tree-sha1 = "87ce0f8162ba3a9f1b6410d2180be4f04c0baac1"
+uuid = "37188c8d-bc69-4638-b057-733e744175ec"
+version = "0.3.2"
 
 [[deps.OpenBLAS_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]

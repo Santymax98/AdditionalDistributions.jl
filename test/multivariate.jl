@@ -475,3 +475,71 @@ end
 # emit_julia_dict(res, name="p_ref_t", key=c("i","nu"), val="p", digits=12)
 # emit_julia_dict(res, name="err_ref_t",key=c("i","nu"), val="error", digits=12)
 # ===========================================================
+
+@testitem "Multivariate CDFResult API" begin
+    using LinearAlgebra
+    using Distributions
+    using AdditionalDistributions
+
+    @testset "MvGaussian cdf_result" begin
+        d = MvGaussian(zeros(2), Matrix(I, 2, 2))
+        a = [-1.0, -1.0]
+        b = [1.0, 1.0]
+
+        res = cdf_result(d, a, b; m=20_000)
+
+        @test res isa CDFResult
+        @test isfinite(res.value)
+        @test isfinite(res.error)
+        @test 0.0 <= res.value <= 1.0
+        @test res.inform in (0, 1, 2, 3)
+        @test res.neval == 20_000
+        @test res.algorithm == :mvsort_rqmc
+
+        value, error, inform = res
+        @test value == res.value
+        @test error == res.error
+        @test inform == res.inform
+    end
+
+    @testset "MvTStudent cdf_result" begin
+        d = MvTStudent(4.5, zeros(2), Matrix(I, 2, 2))
+        a = [-1.0, -1.0]
+        b = [1.0, 1.0]
+
+        res = cdf_result(d, a, b; m=20_000)
+
+        @test res isa CDFResult
+        @test isfinite(res.value)
+        @test isfinite(res.error)
+        @test 0.0 <= res.value <= 1.0
+        @test res.inform in (0, 1, 2, 3)
+        @test res.neval == 20_000
+        @test res.algorithm == :mvsort_rqmc_t
+    end
+
+    @testset "cdf remains scalar-valued" begin
+        d = MvGaussian(zeros(2), Matrix(I, 2, 2))
+        a = [-1.0, -1.0]
+        b = [1.0, 1.0]
+
+        val = cdf(d, a, b; m=20_000)
+        res = cdf_result(d, a, b; m=20_000)
+
+        @test val isa Real
+        @test 0.0 <= val <= 1.0
+        @test 0.0 <= res.value <= 1.0
+    end
+
+    @testset "legacy full=true remains supported" begin
+        d = MvGaussian(zeros(2), Matrix(I, 2, 2))
+        a = [-1.0, -1.0]
+        b = [1.0, 1.0]
+
+        value, error, inform = cdf(d, a, b; m=20_000, full=true)
+
+        @test isfinite(value)
+        @test isfinite(error)
+        @test inform in (0, 1, 2, 3)
+    end
+end

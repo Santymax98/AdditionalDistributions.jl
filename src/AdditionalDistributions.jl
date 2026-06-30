@@ -92,11 +92,14 @@ module AdditionalDistributions
         Nakagami,
         PERT
     
-    include("multivariate/MvGaussian.jl")
-    include("multivariate/MvStudent.jl")
+        include("multivariate/CDFResult.jl")
+        include("multivariate/MvGaussian.jl")
+        include("multivariate/MvStudent.jl")
 
-    export 
-        MvGaussian,
-        MvTStudent
+        export 
+            MvGaussian,
+            MvTStudent,
+            CDFResult,
+            cdf_result
         
 end

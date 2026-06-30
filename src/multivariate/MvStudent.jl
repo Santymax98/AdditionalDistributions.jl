@@ -45,40 +45,58 @@ params(d::MvTStudent) = (d.dist.df, d.dist.μ, d.dist.Σ)
 # ───────────────────────────────
 # CDF by GENZ-BRETZ
 # ───────────────────────────────
-function Distributions.cdf(d::MvTStudent,
-                           a::AbstractVector, b::AbstractVector;
-                           m::Int = 1000*length(a),
-                           abseps::Real = 1e-6,
-                           releps::Real = 1e-6,
-                           pivot::Bool = true,
-                           rng = Random.default_rng(),
-                           full::Bool = false,
-                           antithetic::Bool=false)
+function cdf_result(d::MvTStudent,
+                    a::AbstractVector, b::AbstractVector;
+                    m::Int=1000*length(a),
+                    abseps::Real=1e-6,
+                    releps::Real=1e-6,
+                    pivot::Bool=true,
+                    rng=Random.default_rng(),
+                    antithetic::Bool=false)
 
-    n = length(a); @assert length(b) == n
-    μ = d.dist.μ                       # location, also defined when ν ≤ 1
-    Σscale = d.dist.Σ                   # scatter matrix, not covariance
+    n = length(a)
+    length(b) == n || throw(DimensionMismatch("length(a) ≠ length(b)"))
+
+    μ = d.dist.μ
+    Σscale = d.dist.Σ
     ν = d.dist.df
 
-    @assert size(Σscale) == (n,n)
-    T = promote_type(Float64, eltype(a), eltype(b), eltype(d.dist.μ), eltype(d.dist.Σ))
+    size(Σscale) == (n, n) || throw(DimensionMismatch("Σ must be n×n"))
+
+    T = promote_type(Float64, eltype(a), eltype(b), eltype(μ), eltype(Σscale))
 
     if any(b .< a)
-        return full ? (zero(T), zero(T), 0) : zero(T)
+        return CDFResult(zero(T), zero(T), 0, 0, :empty_rectangle)
     end
 
     Ddiag = sqrt.(LinearAlgebra.diag(Σscale))
-    invD  = 1 ./(T.(Ddiag))
-    C     = LinearAlgebra.Symmetric(LinearAlgebra.Diagonal(invD) * T.(Σscale) * LinearAlgebra.Diagonal(invD))
-    aS    = (T.(a) .- T.(μ)) .* invD
-    bS    = (T.(b) .- T.(μ)) .* invD
-    δS    = zeros(T, n)
+    invD = one(T) ./ T.(Ddiag)
+    C = LinearAlgebra.Symmetric(LinearAlgebra.Diagonal(invD) * T.(Σscale) * LinearAlgebra.Diagonal(invD))
 
-    res = mvtcdf(C, aS, bS; ν=ν, δ=δS,
-                 maxpts=m, abseps=abseps, releps=releps,
-                 assume_correlation=true, pivot=pivot,
-                 antithetic=antithetic, rng=rng)
+    aS = (T.(a) .- T.(μ)) .* invD
+    bS = (T.(b) .- T.(μ)) .* invD
+    δS = zeros(T, n)
 
+    res = mvtcdf(C, aS, bS;
+                 ν=ν,
+                 δ=δS,
+                 maxpts=m,
+                 abseps=abseps,
+                 releps=releps,
+                 assume_correlation=true,
+                 pivot=pivot,
+                 antithetic=antithetic,
+                 rng=rng)
+
+    return CDFResult(T(res.value), T(res.error), res.inform, m, :mvsort_rqmc_t)
+end
+
+function Distributions.cdf(d::MvTStudent,
+                           a::AbstractVector, b::AbstractVector;
+                           full::Bool=false,
+                           kwargs...)
+
+    res = cdf_result(d, a, b; kwargs...)
     return full ? (res.value, res.error, res.inform) : res.value
 end
 

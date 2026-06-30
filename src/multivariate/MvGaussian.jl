@@ -40,45 +40,62 @@ Distributions.insupport(d::MvGaussian, x::AbstractVector)         = Distribution
 params(d::MvGaussian) = (Statistics.mean(d), Statistics.cov(d))
 
 # MvGaussian.jl
-function Distributions.cdf(d::MvGaussian,
-                           a::AbstractVector, b::AbstractVector;
-                           m::Int=1000*length(a),
-                           abseps::Real=1e-6, releps::Real=1e-6,
-                           pivot::Bool=true,
-                           rng=Random.default_rng(),
-                           full::Bool=false,
-                           antithetic::Bool=true)
+function cdf_result(d::MvGaussian,
+                    a::AbstractVector, b::AbstractVector;
+                    m::Int=1000*length(a),
+                    abseps::Real=1e-6,
+                    releps::Real=1e-6,
+                    pivot::Bool=true,
+                    rng=Random.default_rng(),
+                    antithetic::Bool=true)
 
     n = length(a)
-    @assert length(b) == n "length(a) ≠ length(b)"
+    length(b) == n || throw(DimensionMismatch("length(a) ≠ length(b)"))
+
+    μ = Statistics.mean(d)
     Σ = Statistics.cov(d)
-    @assert size(Σ) == (n,n) "Σ no es cuadrada de tamaño n×n"
-    T = promote_type(Float64, eltype(a), eltype(b), eltype(Statistics.mean(d)), eltype(Statistics.cov(d)))
+
+    size(Σ) == (n, n) || throw(DimensionMismatch("Σ must be n×n"))
+
+    T = promote_type(Float64, eltype(a), eltype(b), eltype(μ), eltype(Σ))
 
     if any(b .< a)
-        return full ? (zero(T), zero(T), 0) : zero(T)
+        return CDFResult(zero(T), zero(T), 0, 0, :empty_rectangle)
     end
 
     if n == 1
-        μ1 = Statistics.mean(d)[1]
-        σ1 = sqrt(Statistics.cov(d)[1, 1])
+        μ1 = μ[1]
+        σ1 = sqrt(Σ[1, 1])
         val = Distributions.cdf(Distributions.Normal(μ1, σ1), b[1]) -
-            Distributions.cdf(Distributions.Normal(μ1, σ1), a[1])
-
-        val = max(zero(val), min(one(val), val))
-        return full ? (val, zero(val), 0) : val
+              Distributions.cdf(Distributions.Normal(μ1, σ1), a[1])
+        val = clamp(T(val), zero(T), one(T))
+        return CDFResult(val, zero(T), 0, 0, :univariate_exact)
     end
 
-    μ = Statistics.mean(d)
-    δ = μ
+    Σb = T.(Σ)
+    ab = T.(a)
+    bb = T.(b)
+    δb = T.(μ)
 
-    Tb = promote_type(eltype(Σ), eltype(a), eltype(b), eltype(δ))
-    Σb = Tb.(Σ); ab = Tb.(a); bb = Tb.(b); δb = Tb.(δ)
+    res = mvtcdf(Σb, ab, bb;
+                 ν=0,
+                 δ=δb,
+                 maxpts=m,
+                 abseps=abseps,
+                 releps=releps,
+                 assume_correlation=false,
+                 pivot=pivot,
+                 antithetic=antithetic,
+                 rng=rng)
 
-    res = mvtcdf(Σb, ab, bb; ν=0, δ=δb,
-                 maxpts=m, abseps=abseps, releps=releps,
-                 assume_correlation=false, pivot=pivot,
-                 antithetic=antithetic, rng=rng)
+    return CDFResult(T(res.value), T(res.error), res.inform, m, :mvsort_rqmc)
+end
 
+function Distributions.cdf(d::MvGaussian,
+                           a::AbstractVector, b::AbstractVector;
+                           full::Bool=false,
+                           kwargs...)
+
+    res = cdf_result(d, a, b; kwargs...)
     return full ? (res.value, res.error, res.inform) : res.value
 end

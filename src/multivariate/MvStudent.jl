@@ -20,7 +20,7 @@ cdf(d, a, b)                 # evaluates P(a ≤ X ≤ b)
 cdf_result(d, a, b)          # returns value, error, inform and algorithm metadata
 ```
 """
-struct MvTStudent{D<:Distributions.MvTDist} <: Distributions.ContinuousMultivariateDistribution
+struct MvTStudent{D} <: ContinuousMultivariateDistribution
     dist::D
 end
 

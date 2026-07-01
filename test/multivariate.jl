@@ -543,3 +543,33 @@ end
         @test inform in (0, 1, 2, 3)
     end
 end
+
+@testitem "Multivariate CDF keyword controls" tags=[:multivariate] begin
+    using AdditionalDistributions
+    using Random
+    using LinearAlgebra
+    using Test
+
+    d = 3
+    Σ = fill(0.5, d, d)
+    Σ[diagind(Σ)] .= 1.0
+    a = fill(-1.0, d)
+    b = fill(1.0, d)
+
+    g = MvGaussian(zeros(d), Σ)
+
+    r1 = cdf_result(g, a, b; m=20_000, nshifts=12, rng=MersenneTwister(1))
+    r2 = cdf_result(g, a, b; m=20_000, nshifts=16, rng=MersenneTwister(1))
+
+    @test 0.0 <= r1.value <= 1.0
+    @test 0.0 <= r2.value <= 1.0
+    @test r1.error >= 0.0
+    @test r2.error >= 0.0
+
+    t = MvTStudent(4.0, zeros(d), Σ)
+
+    rt = cdf_result(t, a, b; m=20_000, nshifts=16, rng=MersenneTwister(1))
+
+    @test 0.0 <= rt.value <= 1.0
+    @test rt.error >= 0.0
+end

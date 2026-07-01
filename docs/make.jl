@@ -1,7 +1,9 @@
 # docs/make.jl
 using Pkg
-# desarrolla el paquete localmente (no requiere registro)
+
+# Develop the local package while building the documentation.
 Pkg.develop(path = joinpath(@__DIR__, ".."))
+
 using AdditionalDistributions
 using Documenter
 using GR
@@ -13,7 +15,7 @@ DocMeta.setdocmeta!(AdditionalDistributions, :DocTestSetup, :(using AdditionalDi
 makedocs(;
     modules=[AdditionalDistributions],
     repo = Remotes.GitHub("Santymax98", "AdditionalDistributions.jl"),
-    authors="Santiago Jimenez Ramos <santiago.jimenez@ufpe.br>, and contributors",
+    authors="Santiago Jimenez Ramos <santymax9807@gmail.com>, and contributors",
     sitename="AdditionalDistributions.jl",
     format = DocumenterVitepress.MarkdownVitepress(
         repo = "https://github.com/Santymax98/AdditionalDistributions.jl",
@@ -21,25 +23,28 @@ makedocs(;
     pages=[
         "Home" => "index.md",
         "Getting Started" => "getting_started.md",
+        "Distribution Index" => "Distributions.md",
         "Compatibility" => "Compatibility.md",
         "Accuracy and Reproducibility" => "accuracy.md",
+        "Benchmarks" => "benchmarks.md",
         "Developer Notes" => "developer.md",
         "Bestiary" => [
-            "Discrete Distributions"=>"bestiary/discrete.md",
-            "Continuous Distribution"=>"bestiary/continuous.md",
-            "Multivariate Distributions"=>"bestiary/multivariate.md",
+            "Discrete Distributions" => "bestiary/discrete.md",
+            "Continuous Distributions" => "bestiary/continuous.md",
+            "Multivariate Distributions" => "bestiary/multivariate.md",
         ],
     ],
 )
-
 
 # Minimal sitemap to make the stable documentation easier to discover.
 docs_url = "https://santymax98.github.io/AdditionalDistributions.jl/stable"
 docs_pages = [
     "$(docs_url)/",
     "$(docs_url)/getting_started",
+    "$(docs_url)/Distributions",
     "$(docs_url)/Compatibility",
     "$(docs_url)/accuracy",
+    "$(docs_url)/benchmarks",
     "$(docs_url)/developer",
     "$(docs_url)/bestiary/discrete",
     "$(docs_url)/bestiary/continuous",
@@ -59,7 +64,7 @@ end
 
 DocumenterVitepress.deploydocs(;
     repo = "github.com/Santymax98/AdditionalDistributions.jl",
-    target = "build", # this is where Vitepress stores its output
+    target = "build",
     devbranch="main",
     branch = "gh-pages",
     push_preview = true,

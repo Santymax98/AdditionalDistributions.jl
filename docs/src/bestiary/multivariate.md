@@ -1,6 +1,6 @@
 # Multivariate Distributions
 
-AdditionalDistributions.jl provides wrappers around selected `Distributions.jl` multivariate laws with rectangular CDF support.
+AdditionalDistributions.jl provides multivariate Gaussian and Student-t distributions with support for rectangular cumulative probabilities.
 
 A rectangular CDF is a probability of the form
 
@@ -21,7 +21,9 @@ cdf_result
 AdditionalDistributions.mvtcdf
 ```
 
-## Gaussian rectangular probabilities
+## Basic usage
+
+### Gaussian rectangular probabilities
 
 ```julia
 using AdditionalDistributions
@@ -33,10 +35,10 @@ d = 5
 Σ[diagind(Σ)] .= 1.0
 
 mvnormal = MvGaussian(zeros(d), Σ)
-a = fill(-1.0, d)
-b = fill(1.0, d)
+lower = fill(-1.0, d)
+upper = fill(1.0, d)
 
-res = cdf_result(mvnormal, a, b;
+res = cdf_result(mvnormal, lower, upper;
     m = 100_000,
     rng = MersenneTwister(1234),
 )
@@ -46,15 +48,15 @@ res.error
 res.inform
 ```
 
-`cdf(mvnormal, a, b)` returns only the probability. Use `cdf_result` for diagnostics.
+`cdf(mvnormal, lower, upper)` returns only the probability estimate. Use `cdf_result` for diagnostics.
 
-## Student's t rectangular probabilities
+### Student-t rectangular probabilities
 
 ```julia
 ν = 4.0
 mvt = MvTStudent(ν, zeros(d), Σ)
 
-res = cdf_result(mvt, a, b;
+res = cdf_result(mvt, lower, upper;
     m = 1_000_000,
     abseps = 1e-8,
     releps = 1e-8,
@@ -63,18 +65,29 @@ res = cdf_result(mvt, a, b;
 )
 ```
 
-The Student's t CDF is usually harder than the Gaussian CDF because it uses the normal-scale-mixture representation and an additional chi-square coordinate. Small degrees of freedom, high dimension, and high correlations may require larger `m`.
+The Student-t CDF is usually harder than the Gaussian CDF because it uses the normal-scale-mixture representation and an additional chi-square coordinate. Small degrees of freedom, high dimension, strong dependence, and tail rectangles may require larger `m`.
 
-## Algorithm summary
+## API summary
 
-The Gaussian path uses:
+```julia
+cdf(dist, lower, upper; kwargs...)
+```
 
-1. MVSORT variable reordering;
-2. Genz-style conditional transformation;
-3. folded randomized Richtmyer quasi-Monte Carlo points;
-4. batch evaluation to reduce per-point overhead.
+returns only the probability estimate.
 
-The Student's t path uses the same conditional Gaussian core together with the scale-mixture representation. The Gaussian coordinates are folded; the chi-square radial coordinate is not folded.
+```julia
+cdf_result(dist, lower, upper; kwargs...)
+```
+
+returns a structured result:
+
+```julia
+res.value
+res.error
+res.inform
+res.neval
+res.algorithm
+```
 
 ## Keywords
 
@@ -84,21 +97,79 @@ The Student's t path uses the same conditional Gaussian core together with the s
 | `abseps` | Absolute error tolerance. |
 | `releps` | Relative error tolerance. |
 | `rng` | Random number generator for randomized shifts. |
-| `nshifts` | Number of randomized QMC shifts. Defaults: `12` for Gaussian, `16` for Student's t. |
-| `batchsize` | Internal batch size. `0` selects an automatic setting. |
-| `pivot` | Enable/disable MVSORT reordering. |
-| `antithetic` | Optional antithetic reflection in Gaussian coordinates. |
+| `nshifts` | Number of randomized QMC shifts. Defaults: `12` for Gaussian, `16` for Student-t. |
+| `batchsize` | Internal batch size. Automatic settings are usually appropriate. |
+| `pivot` | Enable or disable MVSORT reordering. |
+| `antithetic` | Optional antithetic reflection when available. |
+
+Typical advanced usage:
+
+```julia
+res = cdf_result(mvt, lower, upper;
+    m = 1_000_000,
+    abseps = 1e-8,
+    releps = 1e-8,
+    nshifts = 16,
+    rng = MersenneTwister(1234),
+)
+```
 
 ## `inform` codes
 
 | Code | Meaning |
-| --- | --- |
+| ---: | --- |
 | `0` | Estimated error reached the requested tolerance. |
 | `1` | Estimated error is above tolerance for the current budget. |
-| `2` | Invalid dimension. |
+| `2` | Invalid dimension or integration setup. |
 | `3` | Matrix appears not positive semidefinite. |
 
-`inform = 1` is common for difficult high-dimensional or heavy-tailed cases. Increase `m`, adjust tolerances, or report the full reproducible case if the result seems suspicious.
+`inform = 1` is common for difficult high-dimensional or heavy-tailed cases. It means the estimated integration error did not reach the requested tolerance with the current budget. Increase `m`, adjust tolerances, or compare against an external reference if the result seems suspicious.
+
+## Algorithm summary
+
+### Gaussian path
+
+The Gaussian rectangular CDF uses:
+
+1. MVSORT variable reordering;
+2. Genz-style conditional transformation;
+3. folded randomized Richtmyer quasi-Monte Carlo points;
+4. batched evaluation to reduce per-point overhead.
+
+Diagonal Gaussian covariance/correlation matrices are handled by an exact product shortcut.
+
+The default number of randomized shifts is:
+
+```julia
+nshifts = 12
+```
+
+### Student-t path
+
+The Student-t implementation uses the scale-mixture representation. If
+
+```math
+Z \sim N(0,\Sigma), \qquad W \sim \chi^2_\nu,
+```
+
+then
+
+```math
+X = \mu + \frac{Z}{\sqrt{W/\nu}}
+```
+
+has a multivariate Student-t distribution.
+
+The algorithm uses the same conditional Gaussian core together with one radial chi-square coordinate. The Gaussian coordinates are folded; the chi-square radial coordinate is not folded.
+
+The default settings for `MvTStudent` are more conservative:
+
+```julia
+m = max(100_000, 10_000*d)
+nshifts = 16
+```
+
+Important: a diagonal Student-t scale matrix does not imply independent components. The components share a common radial scale, so diagonal Student-t rectangular probabilities are not computed as products of univariate Student-t probabilities.
 
 ## Reproducibility
 
@@ -106,7 +177,24 @@ Randomized QMC methods depend on random shifts. Use a fixed RNG to obtain reprod
 
 ```julia
 rng = MersenneTwister(1234)
-res = cdf_result(mvnormal, a, b; rng=rng)
+res = cdf_result(mvnormal, lower, upper; rng=rng)
 ```
 
-When comparing with another implementation, always report `m`, `nshifts`, `abseps`, `releps`, the seed, and the full `CDFResult`.
+When comparing with another implementation, always report:
+
+- `m`;
+- `nshifts`;
+- `abseps`;
+- `releps`;
+- random seed;
+- full `CDFResult`;
+- distribution parameters;
+- lower and upper bounds.
+
+## Reference comparisons
+
+Gaussian reference tests include Genz-style cases and comparisons with `MvNormalCDF.jl`.
+
+Student-t reference checks can be performed with R's `mvtnorm::pmvt` using `GenzBretz`.
+
+See [Benchmarks](../benchmarks.md) and [Accuracy and Reproducibility](../accuracy.md) for more details.

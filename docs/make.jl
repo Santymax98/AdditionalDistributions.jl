@@ -20,20 +20,31 @@ makedocs(;
     format = DocumenterVitepress.MarkdownVitepress(
         repo = "https://github.com/Santymax98/AdditionalDistributions.jl",
     ),
-    pages=[
+    pages = [
         "Home" => "index.md",
-        "Getting Started" => "getting_started.md",
-        "Distribution Index" => "Distributions.md",
-        "Compatibility" => "Compatibility.md",
-        "Accuracy and Reproducibility" => "accuracy.md",
-        "Benchmarks" => "benchmarks.md",
-        "Developer Notes" => "developer.md",
+
+        "Guide" => [
+            "Getting Started" => "getting_started.md",
+            "Distribution Index" => "Distributions.md",
+            "Examples" => "examples.md",
+            "Compatibility" => "Compatibility.md",
+        ],
+
+        "Numerics" => [
+            "Accuracy" => "accuracy.md",
+            "Benchmarks" => "benchmarks.md",
+        ],
+
+        "Ecosystem" => "ecosystem.md",
+
+        "Developer" => "developer.md",
+
         "Bestiary" => [
             "Discrete Distributions" => "bestiary/discrete.md",
             "Continuous Distributions" => "bestiary/continuous.md",
             "Multivariate Distributions" => "bestiary/multivariate.md",
         ],
-    ],
+    ]
 )
 
 # Minimal sitemap to make the stable documentation easier to discover.
@@ -42,9 +53,11 @@ docs_pages = [
     "$(docs_url)/",
     "$(docs_url)/getting_started",
     "$(docs_url)/Distributions",
+    "$(docs_url)/examples",
     "$(docs_url)/Compatibility",
     "$(docs_url)/accuracy",
     "$(docs_url)/benchmarks",
+    "$(docs_url)/ecosystem",
     "$(docs_url)/developer",
     "$(docs_url)/bestiary/discrete",
     "$(docs_url)/bestiary/continuous",

@@ -36,8 +36,11 @@ Statistics.cov(d::MvGaussian)  = Statistics.cov(d.dist)
 Distributions.pdf(d::MvGaussian, x::AbstractVector)    = Distributions.pdf(d.dist, x)
 Distributions.logpdf(d::MvGaussian, x::AbstractVector) = Distributions.logpdf(d.dist, x)
 Distributions.rand(rng::Distributions.AbstractRNG, d::MvGaussian) = Distributions.rand(rng, d.dist)
+Distributions.rand(rng::Distributions.AbstractRNG, d::MvGaussian, n::Int) = Distributions.rand(rng, d.dist, n)
 Distributions.insupport(d::MvGaussian, x::AbstractVector)         = Distributions.insupport(d.dist, x)
 params(d::MvGaussian) = (Statistics.mean(d), Statistics.cov(d))
+Base.length(d::MvGaussian) = length(d.dist)
+
 
 """
     cdf_result(d::MvGaussian, a, b; m=1000*length(a), abseps=1e-6,

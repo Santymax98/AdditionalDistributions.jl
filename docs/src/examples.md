@@ -1,8 +1,12 @@
 # Examples
 
-This page collects small, reproducible examples showing how
-`AdditionalDistributions.jl` can be used together with the Julia statistics
-ecosystem.
+This page contains reproducible examples for `AdditionalDistributions.jl`, a
+Julia package that extends `Distributions.jl` with additional probability
+distributions.
+
+The examples show how to use `AdditionalDistributions.jl` for simulation,
+risk modeling, count data, multivariate probabilities, hypothesis testing,
+copula-based modeling, and Bayesian inference with `Turing.jl`.
 
 The examples are available in the `examples/scripts/` directory of the
 repository and can be run with:

@@ -11,6 +11,15 @@ The package follows the standard `Distributions.jl` interface whenever possible:
 
 It also provides native Julia routines for rectangular cumulative probabilities of multivariate Gaussian and Student-t distributions.
 
+## Documentation
+
+The stable documentation is available at:
+
+https://santymax98.github.io/AdditionalDistributions.jl/stable/
+
+The development documentation is available at:
+
+https://santymax98.github.io/AdditionalDistributions.jl/dev/
 ---
 
 ## Installation

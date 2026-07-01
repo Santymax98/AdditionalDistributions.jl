@@ -36,29 +36,34 @@ hero:
 
 # AdditionalDistributions.jl
 
-`AdditionalDistributions.jl` extends [`Distributions.jl`](https://github.com/JuliaStats/Distributions.jl) with additional continuous, discrete, and multivariate probability distributions.
+`AdditionalDistributions.jl` is a Julia package for additional probability
+distributions built on top of the `Distributions.jl` interface.
 
-The package keeps the standard `Distributions.jl` interface whenever possible, while adding distribution families and numerical routines useful for research and applied work.
+The package extends the Julia statistics ecosystem with univariate and
+multivariate probability distributions that are useful in statistics,
+actuarial science, reliability analysis, risk modeling, Bayesian modeling,
+simulation, and applied probability.
+
+## Main features
+
+- Additional continuous distributions, including heavy-tailed and reliability models.
+- Additional discrete count distributions, including zero-inflated and heavy-tailed models.
+- Multivariate Gaussian and Student-t distributions.
+- Rectangular CDF utilities for multivariate Gaussian and Student-t distributions.
+- Compatibility with the standard `Distributions.jl` API.
+- Ecosystem examples with `HypothesisTests.jl`, `Copulas.jl`, and `Turing.jl`.
+
+## Installation
 
 ```julia
 using Pkg
 Pkg.add("AdditionalDistributions")
 ```
 
-```julia
-using AdditionalDistributions
-```
+## Documentation overview
 
-## Main features
-
-- Extra continuous and discrete univariate distributions.
-- Zero-inflated discrete models such as `ZIP`, `ZIB`, and `ZINB`.
-- Heavy-tailed distributions such as `Burr`, `Lomax`, and `Zeta`.
-- Rectangular CDF evaluation for `MvGaussian`.
-- Rectangular CDF evaluation for `MvTStudent`.
-- Structured multivariate CDF diagnostics through `CDFResult` and `cdf_result`.
-- Reproducible randomized QMC integration when a seeded RNG is provided.
-- Reference tests and benchmark scripts for multivariate CDF evaluation.
+Use the guide pages to get started, browse the distribution index, and explore
+examples of integration with the Julia statistics ecosystem.
 
 ## Quick example
 

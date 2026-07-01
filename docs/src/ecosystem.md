@@ -1,8 +1,13 @@
 # Ecosystem integration
 
-`AdditionalDistributions.jl` is designed to work with the Julia statistics
-ecosystem by following the standard `Distributions.jl` interface whenever
-possible.
+`AdditionalDistributions.jl` is designed to integrate with the Julia statistics
+ecosystem. Since the package follows the `Distributions.jl` interface whenever
+possible, its distributions can be used in simulation, statistical testing,
+copula modeling, Bayesian inference, and probabilistic programming workflows.
+
+This page summarizes how `AdditionalDistributions.jl` works with packages such
+as `Distributions.jl`, `HypothesisTests.jl`, `Copulas.jl`, `StatsBase.jl`, and
+`Turing.jl`.
 
 ## `Distributions.jl`
 

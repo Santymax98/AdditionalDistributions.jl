@@ -1,4 +1,4 @@
-@testitem "Regression – corrected discrete semantics" begin
+@testitem "Regression – corrected discrete semantics" tags=[:regression, :discrete] begin
     using Distributions: params, pdf, logpdf, cdf
 
     d = Rademacher()
@@ -22,7 +22,7 @@
     @test pdf(zinb, 1.2) == 0.0
 end
 
-@testitem "Regression – Delaporte normalization" begin
+@testitem "Regression – Delaporte normalization" tags=[:regression, :discrete] begin
     using Distributions: pdf, logpdf
 
     d = Delaporte(2.5, 2.0, 1.0)
@@ -33,7 +33,7 @@ end
     @test logpdf(d, -1) == -Inf
 end
 
-@testitem "Regression – continuous corrections" begin
+@testitem "Regression – continuous corrections" tags=[:regression, :continuous] begin
     using Distributions: cdf, quantile
     using Statistics: var
 

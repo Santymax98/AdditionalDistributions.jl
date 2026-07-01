@@ -226,7 +226,7 @@ td[14,1] = [59.227 2.601 3.38 8.303 -0.334 11.029 10.908 0.739 4.703 7.075 8.049
  td[14,9] = 0.6653426686040154
 end
 
-@testitem "MvGaussian test" tags=[:Multivariate, :MvGaussian] setup=[GenzTestData] begin
+@testitem "MvGaussian test" tags=[:multivariate, :mvgaussian, :reference] setup=[GenzTestData] begin
     using AdditionalDistributions, Test, Distributions
     using StableRNGs: StableRNG
     using LinearAlgebra
@@ -270,7 +270,7 @@ end
             if i == 6
                 @test round(cdf(Normal(), 1.0), digits=6) ≈ pexpected atol=ptol
             else
-                @test_skip "Σ no es ≻0 (i=$i)"
+                @info "Skipping non-positive-definite Gaussian reference case" i
             end
             continue
         end
@@ -290,7 +290,7 @@ end
 end
 
 
- @testitem "Special cases test" tags=[:Multivariate, :MvGaussian] setup=[GenzTestData] begin
+@testitem "Special cases test" tags=[:multivariate, :mvgaussian, :reference] setup=[GenzTestData] begin
     using AdditionalDistributions 
     using Test, Distributions, StableRNGs, ForwardDiff
     mu    = [1.0, 1.0]
@@ -312,7 +312,7 @@ end
     # --- END ADAPTATION ---
 end
 
-@testitem "ForwardDiff test" tags=[:Multivariate, :MvGaussian] setup=[GenzTestData] begin
+@testitem "ForwardDiff test" tags=[:multivariate, :mvgaussian, :ad] setup=[GenzTestData] begin
     using AdditionalDistributions 
     using Test, Distributions, StableRNGs, ForwardDiff, LinearAlgebra
     # NOTE: This is expected to fail if _qf_std is not
@@ -358,7 +358,7 @@ end
 end
 
 
-@testitem "MvTStudent - accuracy vs. mvtnorm R (sigma=Σ, delta=0)" tags=[:Multivariate, :MvTStudent] setup=[GenzTestData] begin
+@testitem "MvTStudent - accuracy vs. mvtnorm R (sigma=Σ, delta=0)" tags=[:multivariate, :mvtstudent, :reference] setup=[GenzTestData] begin
     using AdditionalDistributions, Test, Distributions
     using LinearAlgebra, StableRNGs
 
@@ -421,7 +421,7 @@ end
         i, ν = key
         Σ = to_cov(Float64.(td[i,1]))
         if !isposdef(Matrix(Σ))
-            @test_skip "Σ not posdef (i=$i) → skip"
+            @info "Skipping non-positive-definite Student-t reference case" i ν
             continue
         end
 
@@ -475,3 +475,101 @@ end
 # emit_julia_dict(res, name="p_ref_t", key=c("i","nu"), val="p", digits=12)
 # emit_julia_dict(res, name="err_ref_t",key=c("i","nu"), val="error", digits=12)
 # ===========================================================
+
+@testitem "Multivariate CDFResult API" tags=[:multivariate, :api] begin
+    using LinearAlgebra
+    using Distributions
+    using AdditionalDistributions
+
+    @testset "MvGaussian cdf_result" begin
+        d = MvGaussian(zeros(2), Matrix(I, 2, 2))
+        a = [-1.0, -1.0]
+        b = [1.0, 1.0]
+
+        res = cdf_result(d, a, b; m=20_000)
+
+        @test res isa CDFResult
+        @test isfinite(res.value)
+        @test isfinite(res.error)
+        @test 0.0 <= res.value <= 1.0
+        @test res.inform in (0, 1, 2, 3)
+        @test res.neval == 20_000
+        @test res.algorithm == :mvsort_rqmc
+
+        value, error, inform = res
+        @test value == res.value
+        @test error == res.error
+        @test inform == res.inform
+    end
+
+    @testset "MvTStudent cdf_result" begin
+        d = MvTStudent(4.5, zeros(2), Matrix(I, 2, 2))
+        a = [-1.0, -1.0]
+        b = [1.0, 1.0]
+
+        res = cdf_result(d, a, b; m=20_000)
+
+        @test res isa CDFResult
+        @test isfinite(res.value)
+        @test isfinite(res.error)
+        @test 0.0 <= res.value <= 1.0
+        @test res.inform in (0, 1, 2, 3)
+        @test res.neval == 20_000
+        @test res.algorithm == :mvsort_rqmc_t
+    end
+
+    @testset "cdf remains scalar-valued" begin
+        d = MvGaussian(zeros(2), Matrix(I, 2, 2))
+        a = [-1.0, -1.0]
+        b = [1.0, 1.0]
+
+        val = cdf(d, a, b; m=20_000)
+        res = cdf_result(d, a, b; m=20_000)
+
+        @test val isa Real
+        @test 0.0 <= val <= 1.0
+        @test 0.0 <= res.value <= 1.0
+    end
+
+    @testset "legacy full=true remains supported" begin
+        d = MvGaussian(zeros(2), Matrix(I, 2, 2))
+        a = [-1.0, -1.0]
+        b = [1.0, 1.0]
+
+        value, error, inform = cdf(d, a, b; m=20_000, full=true)
+
+        @test isfinite(value)
+        @test isfinite(error)
+        @test inform in (0, 1, 2, 3)
+    end
+end
+
+@testitem "Multivariate CDF keyword controls" tags=[:multivariate, :api] begin
+    using AdditionalDistributions
+    using Random
+    using LinearAlgebra
+    using Test
+
+    d = 3
+    Σ = fill(0.5, d, d)
+    Σ[diagind(Σ)] .= 1.0
+    a = fill(-1.0, d)
+    b = fill(1.0, d)
+
+    g = MvGaussian(zeros(d), Σ)
+
+    r1 = cdf_result(g, a, b; m=20_000, nshifts=12, rng=MersenneTwister(1))
+    r2 = cdf_result(g, a, b; m=20_000, nshifts=16, rng=MersenneTwister(1))
+
+    @test 0.0 <= r1.value <= 1.0
+    @test 0.0 <= r2.value <= 1.0
+    @test r1.error >= 0.0
+    @test r2.error >= 0.0
+
+    t = MvTStudent(4.0, zeros(d), Σ)
+
+    rt = cdf_result(t, a, b; m=20_000, nshifts=16, rng=MersenneTwister(1))
+
+    @test 0.0 <= rt.value <= 1.0
+    @test rt.error >= 0.0
+end

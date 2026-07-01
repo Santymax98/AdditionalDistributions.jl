@@ -92,13 +92,17 @@ end
 
 function Distributions.quantile(d::Lomax, p::Real)
     (0 ≤ p ≤ 1) || throw(DomainError(p, "p ∈ [0,1]"))
+
     T = promote_type(typeof(float(p)), typeof(float(d.α)), typeof(float(d.λ)))
     pp = T(p)
+
     iszero(pp) && return zero(T)
-    isone(pp)  && return oftype(T, Inf)
+    isone(pp)  && return T(Inf)
 
     α, λ = T(d.α), T(d.λ)
-    # λ * ((1 - p)^(-1/α) - 1) → stable: λ * expm1( -log1p(-p)/α )
+
+    # λ * ((1 - p)^(-1/α) - 1)
+    # Stable version for p close to 1:
     return λ * expm1(-log1p(-pp) / α)
 end
 

@@ -1,9 +1,69 @@
-# [Extra Univariate Distributions](@id extra_dist)
+# Distribution Index
 
-*Univariate distributions* are the distributions whose variate forms are `Univariate` (*i.e* each sample is a scalar). Abstract types for univariate distributions:
+This page gives a compact overview of the public distribution types provided by `AdditionalDistributions.jl`.
 
-## Index
+Detailed docstrings are available in the corresponding bestiary pages:
+
+- [Continuous distributions](bestiary/continuous.md)
+- [Discrete distributions](bestiary/discrete.md)
+- [Multivariate distributions](bestiary/multivariate.md)
+
+---
+
+## Continuous distributions
+
+- `Alpha`
+- `Argus`
+- `Benini`
+- `Benktander_Type1`
+- `Benktander_Type2`
+- `Bhattacharjee`
+- `BirnbaumSaunders`
+- `Bradford`
+- `Burr`
+- `CrystalBall`
+- `Dagum`
+- `Gompertz`
+- `IrwinHall`
+- `Lomax`
+- `Maxwell`
+- `Nakagami`
+- `PERT`
+
+---
+
+## Discrete distributions
+
+- `BetaNegBinomial`
+- `Borel`
+- `Conway`
+- `Delaporte`
+- `FlorySchulz`
+- `GaussKuzmin`
+- `Logarithmic`
+- `Rademacher`
+- `Yule`
+- `Zeta`
+- `ZIB`
+- `ZINB`
+- `ZIP`
+- `Zipf`
+
+---
+
+## Multivariate distributions
+
+- `MvGaussian`
+- `MvTStudent`
+
+## Multivariate CDF utilities
+
+- `CDFResult`
+- `cdf_result`
+
+---
+
+## API index
 
 ```@index
-Pages = ["Distributions.md"]
 ```

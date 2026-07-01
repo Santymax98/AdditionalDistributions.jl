@@ -20,7 +20,7 @@ cdf(d, a, b)                 # evaluates P(a ≤ X ≤ b)
 cdf_result(d, a, b)          # returns value, error, inform and algorithm metadata
 ```
 """
-struct MvTStudent{D<:Distributions.MvTDist} <: Distributions.ContinuousMultivariateDistribution
+struct MvTStudent{D} <: ContinuousMultivariateDistribution
     dist::D
 end
 
@@ -35,8 +35,10 @@ Statistics.cov(d::MvTStudent) = Statistics.cov(d.dist)
 Distributions.pdf(d::MvTStudent, x::AbstractVector) = Distributions.pdf(d.dist, x)
 Distributions.logpdf(d::MvTStudent, x::AbstractVector) = Distributions.logpdf(d.dist, x)
 Distributions.rand(rng::Distributions.AbstractRNG, d::MvTStudent) = Distributions.rand(rng, d.dist)
+Distributions.rand(rng::Distributions.AbstractRNG, d::MvTStudent, n::Int) = Distributions.rand(rng, d.dist, n)
 Distributions.insupport(d::MvTStudent, x::AbstractVector) = Distributions.insupport(d.dist, x)
 params(d::MvTStudent) = (d.dist.df, d.dist.μ, d.dist.Σ)
+Base.length(d::MvTStudent) = length(d.dist)
 
 # ───────────────────────────────
 # Rectangular CDF by Genz-Bretz/Richtmyer RQMC

@@ -15,6 +15,8 @@
 #   5. MVN and MVT have separate hot paths.
 #   6. Independent MVN rectangles are evaluated exactly.
 #   7. MVN uses the folded/tent-transformed Richtmyer rule by default.
+#   8. MVT uses a batched reduced-dimension Genz transform with folded
+#      conditional Normal coordinates.
 # ─────────────────────────────────────────────────────────────
 
 # ─────────────────────────────────────────────────────────────
@@ -25,10 +27,16 @@
 @inline _pdf(x::T) where {T<:Real} = Distributions.pdf(_Z(T), x)
 @inline _qf_std(p::T) where {T<:Real} = Distributions.quantile(_Z(T), p)
 
-# χ² → scale for t: R = sqrt(χ²_ν / ν)
+# χ² → scale for t: R = sqrt(χ²_ν / ν).
+# The hot MVT path passes the Chisq distribution and invsqrtν explicitly to
+# avoid constructing Chisq(ν) at every QMC point.
 @inline function _scale_t(ν::Real, u::T) where {T<:Real}
     @assert ν > 0
     return sqrt(T(Distributions.quantile(Distributions.Chisq(ν), u)) / T(ν))
+end
+
+@inline function _scale_t(χ::Distributions.Chisq, invsqrtν::T, u::T) where {T<:Real}
+    return sqrt(T(Distributions.quantile(χ, u))) * invsqrtν
 end
 
 # ─────────────────────────────────────────────────────────────
@@ -486,14 +494,17 @@ function _mvt_integrand_rqmc!(y::AbstractVector{T}, r::Int,
                               nd::Int,
                               A::AbstractVector{T}, B::AbstractVector{T}, DL::AbstractVector{T},
                               INFI::AbstractVector{Int}, COV::PackedMatrix{T},
-                              ν::Real,
+                              χ::Distributions.Chisq,
+                              invsqrtν::T,
                               antithetic::Bool) where {T<:Real}
     value = one(T)
 
     @inbounds begin
-        # First QMC coordinate is the common t scale. It is not antithetic.
+        # First QMC coordinate is the common t scale. We keep it non-folded:
+        # the χ² quantile has difficult endpoints, and folding it tends to
+        # oversample both tails in a way that is not consistently beneficial.
         uχ = _rqmc_coord(r, α[1], shift[1])
-        R = _scale_t(ν, uχ)
+        R = _scale_t(χ, invsqrtν, uχ)
 
         s = DL[1]
         d, e = _mvlins(R * A[1] - s, R * B[1] - s, INFI[1])
@@ -502,8 +513,10 @@ function _mvt_integrand_rqmc!(y::AbstractVector{T}, r::Int,
         value *= mass
 
         if nd > 1
+            # Conditional Normal coordinates use the same folded/tent transform
+            # that stabilized the MVN core.
             u = antithetic ? _rqmc_coord_antithetic(r, α[2], shift[2]) :
-                             _rqmc_coord(r, α[2], shift[2])
+                             _rqmc_folded_coord(r, α[2], shift[2])
             y[1] = _safe_qf_std(d + u * mass)
         end
 
@@ -520,7 +533,7 @@ function _mvt_integrand_rqmc!(y::AbstractVector{T}, r::Int,
 
             if k < nd
                 u = antithetic ? _rqmc_coord_antithetic(r, α[k + 1], shift[k + 1]) :
-                                 _rqmc_coord(r, α[k + 1], shift[k + 1])
+                                 _rqmc_folded_coord(r, α[k + 1], shift[k + 1])
                 y[k] = _safe_qf_std(d + u * mass)
             end
         end
@@ -697,6 +710,116 @@ function _rqmc_integrate_mvn(nd::Int,
     return (value=value, error=error, inform=inform)
 end
 
+@inline function _default_mvt_batchsize(nper::Int, nd::Int)
+    # MVT is more expensive per point because each point needs one χ² quantile.
+    # Keep batches slightly smaller than MVN while still amortizing loop overhead.
+    nd <= 3 && return min(nper, 4096)
+    nd <= 10 && return min(nper, 2048)
+    return min(nper, 1024)
+end
+
+function _mvt_integrand_rqmc_batch!(pv::AbstractVector{T},
+                                    y::AbstractMatrix{T},
+                                    work::AbstractVector{T},
+                                    scale::AbstractVector{T},
+                                    r0::Int,
+                                    nb::Int,
+                                    α::AbstractVector{T},
+                                    shift::AbstractVector{T},
+                                    nd::Int,
+                                    A::AbstractVector{T}, B::AbstractVector{T},
+                                    DL::AbstractVector{T},
+                                    INFI::AbstractVector{Int},
+                                    COV::PackedMatrix{T},
+                                    χ::Distributions.Chisq,
+                                    invsqrtν::T,
+                                    antithetic::Bool) where {T<:Real}
+    @inbounds begin
+        # First coordinate: common t scale for each QMC point.
+        aχ = α[1]
+        shχ = shift[1]
+        for i in 1:nb
+            r = r0 + i - 1
+            uχ = _rqmc_coord(r, aχ, shχ)
+            scale[i] = _scale_t(χ, invsqrtν, uχ)
+        end
+
+        # First conditional probability.
+        for i in 1:nb
+            R = scale[i]
+            d, e = _mvlins(R * A[1] - DL[1], R * B[1] - DL[1], INFI[1])
+            mass = e - d
+            if mass <= 0
+                pv[i] = zero(T)
+                if nd > 1
+                    y[i, 1] = zero(T)
+                end
+            else
+                pv[i] = mass
+                if nd > 1
+                    u = antithetic ? _rqmc_coord_antithetic(r0 + i - 1, α[2], shift[2]) :
+                                     _rqmc_folded_coord(r0 + i - 1, α[2], shift[2])
+                    y[i, 1] = _safe_qf_std(d + u * mass)
+                end
+            end
+        end
+
+        for k in 2:nd
+            @simd for i in 1:nb
+                work[i] = DL[k]
+            end
+
+            row0 = _lin(k, 1)
+            for j in 1:k-1
+                ckj = COV.data[row0 + j - 1]
+                @simd for i in 1:nb
+                    work[i] += ckj * y[i, j]
+                end
+            end
+
+            if k < nd
+                ak = α[k + 1]
+                shk = shift[k + 1]
+                for i in 1:nb
+                    if iszero(pv[i])
+                        y[i, k] = zero(T)
+                        continue
+                    end
+
+                    R = scale[i]
+                    d, e = _mvlins(R * A[k] - work[i], R * B[k] - work[i], INFI[k])
+                    mass = e - d
+
+                    if mass <= 0
+                        pv[i] = zero(T)
+                        y[i, k] = zero(T)
+                    else
+                        pv[i] *= mass
+                        r = r0 + i - 1
+                        u = antithetic ? _rqmc_coord_antithetic(r, ak, shk) :
+                                         _rqmc_folded_coord(r, ak, shk)
+                        y[i, k] = _safe_qf_std(d + u * mass)
+                    end
+                end
+            else
+                for i in 1:nb
+                    iszero(pv[i]) && continue
+                    R = scale[i]
+                    d, e = _mvlins(R * A[k] - work[i], R * B[k] - work[i], INFI[k])
+                    mass = e - d
+                    pv[i] = mass <= 0 ? zero(T) : pv[i] * mass
+                end
+            end
+        end
+
+        acc = zero(T)
+        @simd for i in 1:nb
+            acc += pv[i]
+        end
+        return acc
+    end
+end
+
 function _rqmc_integrate_mvt(nd::Int,
                              A::AbstractVector{T}, B::AbstractVector{T}, DL::AbstractVector{T},
                              INFI::AbstractVector{Int}, COV::PackedMatrix{T},
@@ -706,17 +829,28 @@ function _rqmc_integrate_mvt(nd::Int,
                              releps::Real,
                              rng=Random.default_rng(),
                              antithetic::Bool=false,
-                             nshifts::Int=12) where {T<:Real}
+                             nshifts::Int=12,
+                             batchsize::Int=0) where {T<:Real}
     qdim = nd
     qdim <= 0 && return (value=one(T), error=zero(T), inform=0)
 
     α = richtmyer_roots(T, qdim + 1)
     shift = Vector{T}(undef, qdim)
     vals = Vector{T}(undef, nshifts)
-    y = Vector{T}(undef, nd)
 
     per_point = antithetic ? 2 : 1
     nper = max(1, maxpts ÷ (nshifts * per_point))
+    bsz = batchsize > 0 ? min(batchsize, nper) : _default_mvt_batchsize(nper, nd)
+
+    # Only y₁,…,y_{nd-1} are needed. The last level contributes only a mass.
+    ycols = max(nd - 1, 1)
+    y = Matrix{T}(undef, bsz, ycols)
+    pv = Vector{T}(undef, bsz)
+    work = Vector{T}(undef, bsz)
+    scale = Vector{T}(undef, bsz)
+
+    χ = Distributions.Chisq(ν)
+    invsqrtν = inv(sqrt(T(ν)))
 
     @inbounds for sidx in 1:nshifts
         for k in 1:qdim
@@ -724,11 +858,20 @@ function _rqmc_integrate_mvt(nd::Int,
         end
 
         acc = zero(T)
-        for r in 1:nper
-            acc += _mvt_integrand_rqmc!(y, r, α, shift, nd, A, B, DL, INFI, COV, ν, false)
+        r0 = 1
+        while r0 <= nper
+            nb = min(bsz, nper - r0 + 1)
+            acc += _mvt_integrand_rqmc_batch!(pv, y, work, scale,
+                                              r0, nb, α, shift, nd,
+                                              A, B, DL, INFI, COV,
+                                              χ, invsqrtν, false)
             if antithetic
-                acc += _mvt_integrand_rqmc!(y, r, α, shift, nd, A, B, DL, INFI, COV, ν, true)
+                acc += _mvt_integrand_rqmc_batch!(pv, y, work, scale,
+                                                  r0, nb, α, shift, nd,
+                                                  A, B, DL, INFI, COV,
+                                                  χ, invsqrtν, true)
             end
+            r0 += nb
         end
 
         vals[sidx] = acc / T(nper * per_point)
@@ -746,11 +889,15 @@ end
 """
     mvtcdf(Σ, a, b; ν=0, δ=zeros, maxpts=1000n, abseps=1e-6,
            releps=1e-6, assume_correlation=false, pivot=true,
-           antithetic=false, rng=Random.default_rng())
+           antithetic=false, rng=Random.default_rng(), batchsize=0,
+           nshifts=nothing)
 
 Rectangular probability for multivariate Gaussian (`ν <= 0`) and
 multivariate Student t (`ν > 0`) distributions using MVSORT plus randomized
 Richtmyer quasi-Monte Carlo.
+
+When `nshifts` is not specified, the core uses 12 randomized shifts for the
+Gaussian case and 24 randomized shifts for the Student t case.
 
 Returns a named tuple `(value, error, inform)`.
 
@@ -772,7 +919,8 @@ function mvtcdf(Σ::AbstractMatrix{T},
                 pivot::Bool=true,
                 antithetic::Bool=false,
                 rng=Random.default_rng(),
-                batchsize::Int=0) where {T<:Real}
+                batchsize::Int=0,
+                nshifts::Union{Nothing,Int}=nothing) where {T<:Real}
 
     n = size(Σ, 1)
     if n < 1 || n > 1000
@@ -781,6 +929,11 @@ function mvtcdf(Σ::AbstractMatrix{T},
 
     @assert size(Σ) == (n, n)
     @assert length(a) == n == length(b) == length(δ)
+
+    nshifts_eff = isnothing(nshifts) ? (ν > 0 ? 16 : 12) : nshifts
+    if nshifts_eff < 2
+        throw(ArgumentError("nshifts must be at least 2"))
+    end
 
     # Empty rectangle. High-level wrappers already handle this, but keeping it
     # here makes the core safer when called directly.
@@ -840,7 +993,9 @@ function mvtcdf(Σ::AbstractMatrix{T},
                                    abseps=abseps,
                                    releps=releps,
                                    rng=rng,
-                                   antithetic=antithetic)
+                                   antithetic=antithetic,
+                                   nshifts=nshifts_eff,
+                                   batchsize=batchsize)
     else
         return _rqmc_integrate_mvn(nd, A, B, DL, INFI, COV;
                                    maxpts=maxpts,
@@ -848,6 +1003,7 @@ function mvtcdf(Σ::AbstractMatrix{T},
                                    releps=releps,
                                    rng=rng,
                                    antithetic=antithetic,
+                                   nshifts=nshifts_eff,
                                    batchsize=batchsize)
     end
 end

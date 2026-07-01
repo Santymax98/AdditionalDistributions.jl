@@ -3,7 +3,7 @@
 
 A *Multivariate Gaussian (Normal) distribution* equivalent in behavior to
 [`Distributions.MvNormal`](https://juliastats.org/Distributions.jl/stable/multivariate/#Distributions.MvNormal),
-but using a **custom Quasi-Monte Carlo (QMC) integrator** for the cumulative
+but using a **custom folded batch randomized quasi-Monte Carlo integrator** for the cumulative
 distribution function (`cdf`).
 
 This type preserves all the standard functionality of `MvNormal` — including
@@ -47,7 +47,9 @@ function cdf_result(d::MvGaussian,
                     releps::Real=1e-6,
                     pivot::Bool=true,
                     rng=Random.default_rng(),
-                    antithetic::Bool=false)
+                    antithetic::Bool=false,
+                    batchsize::Int=0,
+                    nshifts::Int=12)
 
     n = length(a)
     length(b) == n || throw(DimensionMismatch("length(a) ≠ length(b)"))
@@ -86,7 +88,9 @@ function cdf_result(d::MvGaussian,
                  assume_correlation=false,
                  pivot=pivot,
                  antithetic=antithetic,
-                 rng=rng)
+                 rng=rng,
+                 batchsize=batchsize,
+                 nshifts=nshifts)
 
     return CDFResult(T(res.value), T(res.error), res.inform, m, :mvsort_rqmc)
 end

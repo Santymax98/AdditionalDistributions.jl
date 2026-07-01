@@ -39,7 +39,22 @@ Distributions.rand(rng::Distributions.AbstractRNG, d::MvGaussian) = Distribution
 Distributions.insupport(d::MvGaussian, x::AbstractVector)         = Distributions.insupport(d.dist, x)
 params(d::MvGaussian) = (Statistics.mean(d), Statistics.cov(d))
 
-# MvGaussian.jl
+"""
+    cdf_result(d::MvGaussian, a, b; m=1000*length(a), abseps=1e-6,
+               releps=1e-6, pivot=true, rng=Random.default_rng(),
+               antithetic=false, batchsize=0, nshifts=12)
+
+Estimate the rectangular probability `P(a ≤ X ≤ b)` for a multivariate
+Gaussian distribution and return a [`CDFResult`](@ref).
+
+The Gaussian path uses MVSORT reordering, a Genz-style conditional
+transformation, folded randomized Richtmyer QMC points, and batch evaluation.
+If the covariance matrix is diagonal, the probability is evaluated exactly by
+factorization.
+
+Use `cdf(d, a, b)` for the scalar probability, or `cdf(d, a, b; full=true)` for
+the legacy `(value, error, inform)` tuple.
+"""
 function cdf_result(d::MvGaussian,
                     a::AbstractVector, b::AbstractVector;
                     m::Int=1000*length(a),

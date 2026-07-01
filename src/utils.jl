@@ -897,7 +897,7 @@ multivariate Student t (`ν > 0`) distributions using MVSORT plus randomized
 Richtmyer quasi-Monte Carlo.
 
 When `nshifts` is not specified, the core uses 12 randomized shifts for the
-Gaussian case and 24 randomized shifts for the Student t case.
+Gaussian case and 16 randomized shifts for the Student t case.
 
 Returns a named tuple `(value, error, inform)`.
 

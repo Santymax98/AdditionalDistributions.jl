@@ -22,6 +22,8 @@ makedocs(;
         "Home" => "index.md",
         "Getting Started" => "getting_started.md",
         "Compatibility" => "Compatibility.md",
+        "Accuracy and Reproducibility" => "accuracy.md",
+        "Developer Notes" => "developer.md",
         "Bestiary" => [
             "Discrete Distributions"=>"bestiary/discrete.md",
             "Continuous Distribution"=>"bestiary/continuous.md",
@@ -37,6 +39,8 @@ docs_pages = [
     "$(docs_url)/",
     "$(docs_url)/getting_started",
     "$(docs_url)/Compatibility",
+    "$(docs_url)/accuracy",
+    "$(docs_url)/developer",
     "$(docs_url)/bestiary/discrete",
     "$(docs_url)/bestiary/continuous",
     "$(docs_url)/bestiary/multivariate",

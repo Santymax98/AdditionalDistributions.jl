@@ -41,6 +41,23 @@ params(d::MvTStudent) = (d.dist.df, d.dist.μ, d.dist.Σ)
 # ───────────────────────────────
 # Rectangular CDF by Genz-Bretz/Richtmyer RQMC
 # ───────────────────────────────
+"""
+    cdf_result(d::MvTStudent, a, b; m=max(100_000, 10_000*length(a)),
+               abseps=1e-6, releps=1e-6, pivot=true,
+               rng=Random.default_rng(), antithetic=false,
+               batchsize=0, nshifts=16)
+
+Estimate the rectangular probability `P(a ≤ X ≤ b)` for a multivariate
+Student's t distribution and return a [`CDFResult`](@ref).
+
+The Student's t path uses the scale-mixture representation of the t law with
+an additional chi-square coordinate, combined with the same conditional
+Gaussian transformation used by `MvGaussian`. The Gaussian coordinates are
+folded; the chi-square coordinate is not folded.
+
+Small degrees of freedom, high dimensions, strong correlations, or tail
+rectangles may require a larger `m`.
+"""
 function cdf_result(d::MvTStudent,
                     a::AbstractVector, b::AbstractVector;
                     m::Int=max(100_000, 10_000 * length(a)),

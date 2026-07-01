@@ -1,15 +1,26 @@
 """
     CDFResult(value, error, inform, neval, algorithm)
 
-Structured result returned by `cdf_result` for multivariate rectangular
+Structured result returned by [`cdf_result`](@ref) for multivariate rectangular
 probabilities.
 
-Fields:
+# Fields
+
 - `value`: estimated probability.
 - `error`: estimated absolute integration error.
 - `inform`: convergence/status code.
-- `neval`: approximate number of integrand evaluations.
+- `neval`: requested integration budget.
 - `algorithm`: integration algorithm identifier.
+
+# `inform` codes
+
+- `0`: estimated error is within tolerance.
+- `1`: estimated error is above tolerance for the current budget.
+- `2`: invalid dimension.
+- `3`: matrix appears not positive semidefinite during preparation.
+
+`CDFResult` can be destructured as `(value, error, inform)` for compatibility
+with the legacy `full=true` tuple output.
 """
 struct CDFResult{T<:Real}
     value::T

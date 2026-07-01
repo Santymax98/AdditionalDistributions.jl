@@ -2,66 +2,86 @@
 
 ## Installation
 
-The *AdditionalDistributions* package is available through the Julia package system by running `Pkg.add("AdditionalDistributions")`.
-Throughout, we assume that you have installed the package.
-
-## Starting With a Poisson Zero-inflated Distribution ZIP
-
-We start by drawing 100 observations from a Poisson zero-inflated with parameters `λ = 5.0` and `p = 0.2` random variable.
-
-The first step is to set up the environment:
+AdditionalDistributions.jl is available through Julia's package manager:
 
 ```julia
-julia> using Random, Distributions, AdditionalDistributions
-
-julia> Random.seed!(2024) # Setting the seed
+using Pkg
+Pkg.add("AdditionalDistributions")
 ```
 
-Then, we create a Poisson zero-inflated distribution `d` and obtain samples using `rand`:
+Then load it with:
 
 ```julia
-julia> d = ZIP(5.0, 0.2)
-ZIP{Float64}(λ=5.0, p=0.2)
+using AdditionalDistributions
 ```
 
-The object `d` represents a probability distribution, in our case the Poisson zero-inflated distribution.
-One can query its properties such as the mean:
+Most workflows also use `Distributions.jl`:
 
 ```julia
-julia> mean(d)
-4.0
+using Distributions
 ```
 
-We can also draw samples from `d` with `rand`.
-```julia
-julia> samples = rand(d, 100)
-100-element Vector{Int64}:
- 0
- 3
- 6
- 4
- 5
- ⋮
-```
+## Univariate distributions
 
-You can easily obtain the `pdf`, `cdf`, `quantile`, and many other functions for a distribution. For instance, the median (50th percentile) and the 95th percentile for the Poisson zero inflated distribution are given by:
+AdditionalDistributions.jl provides additional continuous and discrete distributions that follow the familiar `Distributions.jl` interface.
+
+For example, a Lomax distribution:
 
 ```julia
-julia> quantile.(ZIP(), [0.5, 0.95])
-2-element Vector{Int64}:
- 0
- 2
+using AdditionalDistributions
+
+x = Lomax(2.0, 3.0)
+
+pdf(x, 1.5)
+cdf(x, 1.5)
+quantile(x, 0.9)
 ```
 
-## Using Other Distributions
-
-The package contains a large number of `discrete` and `continuous` distributions in addition to those implemented in Distributions.jl.
-
-For instance, you can define the following distributions (among many others):
+A zero-inflated Poisson distribution:
 
 ```julia
-julia> BetaNegBinomial(r, α, β) # Discrete univariate
-julia> Lomax(α, λ)              # Continuous univariate
-julia> ZINB(r, θ, p)            # Discrete univariate
-julia> Gompertz(η, b)           # Continuous univariate
+z = ZIP(2.0, 0.3)
+
+pdf(z, 0)
+cdf(z, 4)
+rand(z, 10)
 ```
+
+## Multivariate rectangular probabilities
+
+The package also supports rectangular probabilities for selected multivariate distributions.
+
+```julia
+using AdditionalDistributions
+using LinearAlgebra
+using Random
+
+d = 5
+Σ = fill(0.5, d, d)
+Σ[diagind(Σ)] .= 1.0
+
+lower = fill(-1.0, d)
+upper = fill( 1.0, d)
+
+dist = MvGaussian(zeros(d), Σ)
+
+res = cdf_result(dist, lower, upper;
+    m = 100_000,
+    rng = MersenneTwister(1234),
+)
+
+res.value
+res.error
+res.inform
+```
+
+Use `cdf(dist, lower, upper)` when you only need the probability estimate. Use `cdf_result` when you need numerical diagnostics.
+
+## Where to go next
+
+- [Distribution Index](Distributions.md)
+- [Continuous distributions](bestiary/continuous.md)
+- [Discrete distributions](bestiary/discrete.md)
+- [Multivariate distributions](bestiary/multivariate.md)
+- [Accuracy and Reproducibility](accuracy.md)
+- [Benchmarks](benchmarks.md)

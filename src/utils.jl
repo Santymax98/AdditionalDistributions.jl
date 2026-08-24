@@ -32,10 +32,35 @@
 # avoid constructing Chisq(ν) at every QMC point.
 @inline function _scale_t(ν::Real, u::T) where {T<:Real}
     @assert ν > 0
+
+    if ν == 1
+        # χ²₁ quantile:
+        # Q(u) = 2 * erfinv(u)^2.
+        # Since u ∈ (0, 1), erfinv(u) ≥ 0, hence
+        # sqrt(Q(u)) = sqrt(2) * erfinv(u).
+        return sqrt(T(2)) * T(SpecialFunctions.erfinv(u))
+    elseif ν == 2
+        # χ²₂ ~ Exponential(scale=2), so
+        # sqrt(Q(u) / 2) = sqrt(-log(1-u)).
+        return sqrt(-log1p(-u))
+    end
+
     return sqrt(T(Distributions.quantile(Distributions.Chisq(ν), u)) / T(ν))
 end
 
-@inline function _scale_t(χ::Distributions.Chisq, invsqrtν::T, u::T) where {T<:Real}
+@inline function _scale_t(
+    χ::Distributions.Chisq,
+    invsqrtν::T,
+    u::T,
+) where {T<:Real}
+    ν = Distributions.dof(χ)
+
+    if ν == 1
+        return sqrt(T(2)) * T(SpecialFunctions.erfinv(u))
+    elseif ν == 2
+        return sqrt(-log1p(-u))
+    end
+
     return sqrt(T(Distributions.quantile(χ, u))) * invsqrtν
 end
 

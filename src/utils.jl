@@ -30,35 +30,90 @@
 # χ² → scale for t: R = sqrt(χ²_ν / ν).
 # The hot MVT path passes the Chisq distribution and invsqrtν explicitly to
 # avoid constructing Chisq(ν) at every QMC point.
-@inline function _scale_t(ν::Real, u::T) where {T<:Real}
+# Exact radial transform for ν = 4.
+#
+# If X ~ χ²₄, then Y = X/2 ~ Gamma(2, 1), with
+#
+#     F_Y(y) = 1 - exp(-y)(1+y).
+#
+# Solving F_Y(y) = u gives
+#
+#     y = -1 - W₋₁(-(1-u)/e),
+#
+# and therefore
+#
+#     sqrt(X/4) = sqrt(y/2).
+#
+# Near u = 0, evaluate 1 + W₋₁ close to its branch point
+# directly with lambertwbp to avoid catastrophic cancellation.
+@inline function _scale_t_nu4(
+    χ::Distributions.Chisq,
+    invsqrtν::T,
+    u::T,
+) where {T<:AbstractFloat}
+
+    # Extremely small probabilities are essentially impossible in the
+    # randomized QMC loop, but using the generic χ² quantile here preserves
+    # full robustness when u approaches the smallest representable number.
+    if u < sqrt(floatmin(T))
+        return sqrt(T(Distributions.quantile(χ, u))) * invsqrtν
+    end
+
+    inv_e = exp(-one(T))
+
+    if u <= T(0.5)
+        # lambertwbp(z, -1) = 1 + W₋₁(-1/e + z),
+        # and -(1-u)/e = -1/e + u/e.
+        v = LambertW.lambertwbp(u * inv_e, -1)
+        return sqrt(-T(v) / T(2))
+    else
+        w = LambertW.lambertw(
+            -(one(T) - u) * inv_e,
+            -1,
+        )
+        return sqrt((-one(T) - T(w)) / T(2))
+    end
+end
+
+@inline function _scale_t(ν::Real, u::T) where {T<:AbstractFloat}
     @assert ν > 0
 
     if ν == 1
         # χ²₁ quantile:
-        # Q(u) = 2 * erfinv(u)^2.
-        # Since u ∈ (0, 1), erfinv(u) ≥ 0, hence
         # sqrt(Q(u)) = sqrt(2) * erfinv(u).
         return sqrt(T(2)) * T(SpecialFunctions.erfinv(u))
     elseif ν == 2
-        # χ²₂ ~ Exponential(scale=2), so
-        # sqrt(Q(u) / 2) = sqrt(-log(1-u)).
+        # χ²₂ ~ Exponential(scale=2):
+        # sqrt(Q(u)/2) = sqrt(-log(1-u)).
         return sqrt(-log1p(-u))
+    elseif ν == 4
+        χ = Distributions.Chisq(ν)
+        return _scale_t_nu4(
+            χ,
+            inv(sqrt(T(ν))),
+            u,
+        )
     end
 
-    return sqrt(T(Distributions.quantile(Distributions.Chisq(ν), u)) / T(ν))
+    return sqrt(
+        T(Distributions.quantile(Distributions.Chisq(ν), u)) / T(ν)
+    )
 end
 
 @inline function _scale_t(
     χ::Distributions.Chisq,
     invsqrtν::T,
     u::T,
-) where {T<:Real}
+) where {T<:AbstractFloat}
+
     ν = Distributions.dof(χ)
 
     if ν == 1
         return sqrt(T(2)) * T(SpecialFunctions.erfinv(u))
     elseif ν == 2
         return sqrt(-log1p(-u))
+    elseif ν == 4
+        return _scale_t_nu4(χ, invsqrtν, u)
     end
 
     return sqrt(T(Distributions.quantile(χ, u))) * invsqrtν

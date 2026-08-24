@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Direct `cdf_result` support for native `Distributions.AbstractMvNormal` and
+  `Distributions.AbstractMvTDist` objects.
+- One-sided multivariate CDF convenience methods `cdf(d, x)` for
+  `MvGaussian` and `MvTStudent`.
+- API-level regression tests covering native/wrapper agreement.
+
+### Changed
+
+- `MvGaussian` now participates directly in the
+  `Distributions.AbstractMvNormal` interface and delegates only the primitive
+  operations required by that abstraction.
+- `MvTStudent` is now explicitly typed around
+  `Distributions.AbstractMvTDist`, while preserving the distinction between
+  Student-t location/scale parameters and statistical mean/covariance.
+- Multivariate documentation now describes native `Distributions.jl`
+  interoperability and the type-piracy boundary.
+
 ## 0.2.0 - 2026-07-01
 
 ### Added

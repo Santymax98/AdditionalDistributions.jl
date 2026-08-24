@@ -51,8 +51,9 @@ Pkg.add(url="https://github.com/Santymax98/AdditionalDistributions.jl")
 - Additional continuous and discrete univariate distributions.
 - Zero-inflated discrete models such as `ZIP`, `ZIB`, and `ZINB`.
 - Heavy-tailed distributions such as `Burr`, `Lomax`, and `Zeta`.
-- Rectangular CDF evaluation for `MvGaussian`.
-- Rectangular CDF evaluation for `MvTStudent`.
+- `MvGaussian` integrated with the `Distributions.AbstractMvNormal` interface.
+- Rectangular CDF evaluation for `MvGaussian` and `MvTStudent`.
+- Direct `cdf_result` support for native `Distributions.MvNormal` and `Distributions.MvTDist` objects.
 - Structured multivariate CDF diagnostics through `CDFResult` and `cdf_result`.
 - Reproducible randomized QMC integration when a seeded RNG is provided.
 - Reference tests and benchmark scripts for multivariate CDF evaluation.
@@ -131,6 +132,33 @@ res_t = cdf_result(mvt, lower, upper;
 
 The multivariate Student-t implementation uses the normal-scale-mixture representation. Even with a diagonal scale matrix, its components are not treated as independent univariate Student-t random variables, because they share a common radial scale.
 
+### Native `Distributions.jl` interoperability
+
+The rectangular-probability backend can also be used directly with native
+`Distributions.jl` objects:
+
+```julia
+using Distributions
+
+dn = MvNormal(zeros(d), Σ)
+rn = cdf_result(dn, lower, upper; rng=MersenneTwister(1234))
+
+dt = MvTDist(ν, zeros(d), Σ)
+rt = cdf_result(dt, lower, upper; rng=MersenneTwister(1234))
+```
+
+`cdf_result` is owned by `AdditionalDistributions.jl`, so this interoperability
+does not require extending `Distributions.cdf` on external distribution types.
+For the wrapper types, the natural scalar-valued interface remains available:
+
+```julia
+cdf(MvGaussian(zeros(d), Σ), upper)
+cdf(MvGaussian(zeros(d), Σ), lower, upper)
+
+cdf(MvTStudent(ν, zeros(d), Σ), upper)
+cdf(MvTStudent(ν, zeros(d), Σ), lower, upper)
+```
+
 ---
 
 ## Multivariate CDF controls
@@ -142,7 +170,7 @@ The multivariate Student-t implementation uses the normal-scale-mixture represen
 | `releps` | Relative error tolerance. |
 | `rng` | Random number generator used for randomized shifts. Fix it for reproducibility. |
 | `nshifts` | Number of randomized QMC shifts. Defaults: `12` for `MvGaussian`, `16` for `MvTStudent`. |
-| `batchsize` | Internal batch size. `nothing` or an automatic setting lets the implementation choose a value. |
+| `batchsize` | Internal batch size. Use `0` (the default) to let the implementation choose automatically. |
 | `pivot` | Whether to use the MVSORT variable reordering step. |
 | `antithetic` | Optional antithetic reflection when available. |
 

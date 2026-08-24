@@ -49,6 +49,22 @@ end
     M.check(PoissonInvGaussian(25.0, 1.5))  # strong overdispersion and heavier tail
 end
 
+@testitem "PoissonInvGaussian large-mean stability" tags=[:discrete, :poissoninvgaussian, :numerics] begin
+    using Distributions
+
+    d = PoissonInvGaussian(1000.0, 1e6)
+
+    @test pdf(d, 1000) > 0
+
+    p = cdf(d, 1000)
+    @test isfinite(p)
+    @test 0.45 < p < 0.55
+
+    q = quantile(d, 0.5)
+    @test isfinite(q)
+    @test 900 < q < 1100
+end
+
 @testitem "Generic – Rademacher" tags=[:generic, :discrete, :rademacher] setup=[M] begin
     M.check(Rademacher())
 end

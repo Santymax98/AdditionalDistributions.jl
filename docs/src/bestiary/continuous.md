@@ -51,6 +51,9 @@ Argus
 plotdensity((0.0, 1.0), Argus, (1, 1)) # hide
 ```
 ```@docs
+AsymLaplace
+```
+```@docs
 Benini
 ```
 ```@example plotdensity
@@ -109,6 +112,15 @@ Gompertz
 ```
 ```@example plotdensity
 plotdensity((0.0, 1.0), Gompertz, (1,1)) # hide
+```
+```@docs
+HalfCauchy
+```
+```@docs
+HalfNormal
+```
+```@docs
+HalfTDist
 ```
 ```@docs
 IrwinHall

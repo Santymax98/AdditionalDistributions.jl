@@ -47,6 +47,7 @@ end
 @inline _isnonneginteger_zinb(x::Real) = isfinite(x) && x >= 0 && x == floor(x)
 
 function Distributions.cdf(d::ZINB, x::Real)
+    isnan(float(x)) && return NaN
     x < 0 && return 0.0
     x == Inf && return 1.0
     !isfinite(x) && return 0.0

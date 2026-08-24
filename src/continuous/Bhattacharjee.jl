@@ -61,8 +61,17 @@ Statistics.var(d::Bhattacharjee) = d.σ^2 + (d.b - d.a)^2 / 12
 
 function Distributions.cdf(d::Bhattacharjee, x::Real)
     a, b, σ = d.a, d.b, d.σ
+    isnan(float(x)) && return NaN
+    x == -Inf && return 0.0
+    x == Inf && return 1.0
+
     t1, t2 = (x - a) / σ, (x - b) / σ
-    (σ / (b - a)) * (t1 * Distributions.cdf(normal_dist, t1) - t2 * Distributions.cdf(normal_dist, t2) + Distributions.pdf(normal_dist, t1) - Distributions.pdf(normal_dist, t2))
+    return (σ / (b - a)) * (
+        t1 * Distributions.cdf(normal_dist, t1) -
+        t2 * Distributions.cdf(normal_dist, t2) +
+        Distributions.pdf(normal_dist, t1) -
+        Distributions.pdf(normal_dist, t2)
+    )
 end
 
 function Distributions.pdf(d::Bhattacharjee, x::Real)

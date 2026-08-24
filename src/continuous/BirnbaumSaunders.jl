@@ -66,37 +66,35 @@ StatsBase.kurtosis(d::BirnbaumSaunders) = 3 + (6 * d.α^2 * (93 * d.α^2 + 40)) 
 
 function Distributions.cdf(d::BirnbaumSaunders, x::Real)
     μ, α, β = d.μ, d.α, d.β
-    _insupport = insupport(d, x)
-    if _insupport
-        term = (sqrt((x - μ)/β) - sqrt(β/(x - μ)))/α
-        return Distributions.cdf(normal_dist, term)
-    else
-        return 0.0            
-    end
+    isnan(float(x)) && return NaN
+    x <= μ && return 0.0
+    isinf(x) && return 1.0
+
+    y = x - μ
+    term = (sqrt(y / β) - sqrt(β / y)) / α
+    return Distributions.cdf(normal_dist, term)
 end
 
 function Distributions.pdf(d::BirnbaumSaunders, x::Real)
     μ, α, β = d.μ, d.α, d.β
-    _insupport = insupport(d, x)
-    if _insupport
-        term_1 = (sqrt((x - μ)/β) + sqrt(β/(x - μ)))/(2 * α * (x - μ))
-        inner_term = (sqrt((x - μ)/β) - sqrt(β/(x - μ)))/α
-        return term_1 * Distributions.pdf(normal_dist, inner_term)
-    else
-        return 0.0
-    end
+    x <= μ && return 0.0
+    !isfinite(float(x)) && return 0.0
+
+    y = x - μ
+    term_1 = (sqrt(y / β) + sqrt(β / y)) / (2 * α * y)
+    inner_term = (sqrt(y / β) - sqrt(β / y)) / α
+    return term_1 * Distributions.pdf(normal_dist, inner_term)
 end
 
 function Distributions.logpdf(d::BirnbaumSaunders, x::Real)
     μ, α, β = d.μ, d.α, d.β
-    _insupport = insupport(d, x)
-    if _insupport
-        term_1 = log((sqrt((x - μ) / β) + sqrt(β / (x - μ))) / (2 * α * (x - μ)))
-        inner_term = (sqrt((x - μ) / β) - sqrt(β / (x - μ))) / α
-        return term_1 + Distributions.logpdf(normal_dist, inner_term)
-    else
-        return -Inf
-    end
+    x <= μ && return -Inf
+    !isfinite(float(x)) && return -Inf
+
+    y = x - μ
+    term_1 = log((sqrt(y / β) + sqrt(β / y)) / (2 * α * y))
+    inner_term = (sqrt(y / β) - sqrt(β / y)) / α
+    return term_1 + Distributions.logpdf(normal_dist, inner_term)
 end
 
 function Distributions.quantile(d::BirnbaumSaunders, p::Real)

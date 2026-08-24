@@ -63,12 +63,20 @@ Statistics.median(d::Gompertz) = (1/d.b) * log(1.0 - 1/d.η *log(0.5))
 
 function Distributions.cdf(d::Gompertz, x::Real)
     η, b = d.η, d.b
-    _insupport = insupport(d, x)
-    if _insupport
-        return 1.0 -  exp(-η * (exp(b*x) - 1.0))
-    else
-        return 0.0            
-    end
+    isnan(float(x)) && return NaN
+    x <= 0 && return 0.0
+    isinf(x) && return 1.0
+
+    return -expm1(-η * expm1(b * x))
+end
+
+function Distributions.ccdf(d::Gompertz, x::Real)
+    η, b = d.η, d.b
+    isnan(float(x)) && return NaN
+    x <= 0 && return 1.0
+    isinf(x) && return 0.0
+
+    return exp(-η * expm1(b * x))
 end
 
 function Distributions.pdf(d::Gompertz, x::Real)

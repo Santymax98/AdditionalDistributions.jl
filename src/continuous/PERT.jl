@@ -59,7 +59,8 @@ StatsBase.skewness(d::PERT) = (2 * (_β(d) - _α(d)) * sqrt(_α(d) + _β(d) + 1)
 # Evaluate functions CDF, PDF, logPDF, quantile
 function Distributions.cdf(d::PERT, x::Real)
     a, b, m = d.a, d.b, d.m
-    x < a && return 0.0
+    isnan(float(x)) && return NaN
+    x <= a && return 0.0
     x >= m && return 1.0
     z = (x - a) / (m - a)
     alpha, beta = _α(d), _β(d)

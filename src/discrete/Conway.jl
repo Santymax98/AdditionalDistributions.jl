@@ -118,9 +118,11 @@ end
 # Evaluate functions CDF, PDF, logPDF, quantile
 function Distributions.cdf(d::Conway, x::Real; tol=1e-15, max_iterations=10000)
     λ, ν = d.λ, d.ν
-    if x < 0
-        return 0.0
-    end
+    isnan(float(x)) && return NaN
+    x < 0 && return 0.0
+    x == Inf && return 1.0
+    !isfinite(x) && return 0.0
+
     x = round(Int, x)
     Z_d = Ζ(d; tol=tol, max_iterations=max_iterations)
     log_Z_d = log(Z_d)

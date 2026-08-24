@@ -75,12 +75,11 @@ StatsBase.mode(d::Dagum) = d.b * ((d.a * d.p - 1)/(d.a + 1))^(1/d.a)
 
 function Distributions.cdf(d::Dagum, x::Real)
     a, b, p = d.a, d.b, d.p
-    _insupport = insupport(d, x)
-    if _insupport
-        return (1 + (x/b)^(-a))^(-p)
-    else
-        return 0.0
-    end
+    isnan(float(x)) && return NaN
+    x <= 0 && return 0.0
+    isinf(x) && return 1.0
+
+    return (1 + (x / b)^(-a))^(-p)
 end
 
 function Distributions.logpdf(d::Dagum, x::Real)

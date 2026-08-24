@@ -35,7 +35,11 @@ StatsBase.mode(d::GaussKuzmin) = 1
 # Evaluate functions CDF, PDF, logPDF, quantile
 
 function Distributions.cdf(::GaussKuzmin, x::Real)
+    isnan(float(x)) && return NaN
     x < 1 && return 0.0
+    x == Inf && return 1.0
+    !isfinite(x) && return 0.0
+
     k = floor(Int, x)
     return 1 - log2((k + 2) / (k + 1))
 end

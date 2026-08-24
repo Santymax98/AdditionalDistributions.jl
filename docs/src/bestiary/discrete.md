@@ -22,7 +22,13 @@ GaussKuzmin
 Logarithmic
 ```
 ```@docs
+PoissonInvGaussian
+```
+```@docs
 Rademacher
+```
+```@docs
+Weibull_Type1
 ```
 ```@docs
 Yule

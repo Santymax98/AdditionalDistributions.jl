@@ -48,9 +48,11 @@ Statistics.var(d::Borel) = d.a/(1-d.a)^3
 # Evaluate functions CDF, PDF, logPDF, quantile
 function Distributions.cdf(d::Borel, x::Real)
     a = d.a
-    if !insupport(d, x)
-        return 0.0
-    end
+    isnan(float(x)) && return NaN
+    x < 1 && return 0.0
+    x == Inf && return 1.0
+    !isfinite(x) && return 0.0
+
     x = floor(Int, x)
     cdf_value = 0.0
     for k in 1:x

@@ -18,6 +18,7 @@ StatsBase.kurtosis(::Rademacher) = -2
 StatsBase.entropy(::Rademacher) = log(2)
 
 function Distributions.cdf(::Rademacher, x::Real)
+    isnan(float(x)) && return NaN
     x < -1 && return 0.0
     x < 1 && return 0.5
     return 1.0

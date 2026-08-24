@@ -53,12 +53,10 @@ StatsBase.mode(d::Alpha) = d.β * (sqrt(d.α^2 + 8) - d.α)/4
 
 function Distributions.cdf(d::Alpha, x::Real)
     α, β = d.α, d.β
-    _insupport = insupport(d, x)
-    if _insupport
-        return Distributions.cdf(normal_dist, α - (β/x)) / Distributions.cdf(normal_dist, α)
-    else
-        return 0.0            
-    end
+    isnan(float(x)) && return NaN
+    x <= 0 && return 0.0
+    isinf(x) && return 1.0
+    return Distributions.cdf(normal_dist, α - β / x) / Distributions.cdf(normal_dist, α)
 end
 
 function Distributions.pdf(d::Alpha, x::Real)

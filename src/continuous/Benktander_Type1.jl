@@ -58,12 +58,12 @@ end
 
 function Distributions.cdf(d::Benktander_Type1, x::Real)
     a, b = d.a, d.b
-    _insupport = insupport(d, x)
-    if _insupport
-        return 1 -  (1 + (2*b*log(x))/a) * x^(-(a+1+b*log(x)))
-    else
-        return 0.0            
-    end
+    isnan(float(x)) && return NaN
+    x <= 1 && return 0.0
+    isinf(x) && return 1.0
+
+    lx = log(x)
+    return 1 - (1 + (2 * b * lx) / a) * exp(-(a + 1 + b * lx) * lx)
 end
 
 function Distributions.pdf(d::Benktander_Type1, x::Real)

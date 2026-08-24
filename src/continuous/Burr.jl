@@ -81,12 +81,11 @@ StatsBase.kurtosis(d::Burr) =  (-3 * moments(d, 1)^4 + 6 * moments(d, 1)^2 * mom
 
 function Distributions.cdf(d::Burr, x::Real)
     c, k, λ = d.c, d.k, d.λ
-    _insupport = insupport(d, x)
-    if _insupport
-        return 1 - (1 + (x/λ)^c)^(-k)
-    else
-        return 0.0
-    end
+    isnan(float(x)) && return NaN
+    x <= 0 && return 0.0
+    isinf(x) && return 1.0
+
+    return -expm1(-k * log1p((x / λ)^c))
 end
 
 function Distributions.logpdf(d::Burr, x::Real)

@@ -94,8 +94,9 @@ end
 
 function Distributions.cdf(d::IrwinHall, x::Real)
     n, a, b = d.n, d.a, d.b
-    x <= minimum(d) && return zero(a)
-    x >= maximum(d) && return one(a)
+    isnan(float(x)) && return NaN
+    x <= minimum(d) && return zero(float(a))
+    x >= maximum(d) && return one(float(a))
 
     n == one(n) && return (x - a)/(b - a) # uniform distribution
 

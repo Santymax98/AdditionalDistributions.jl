@@ -75,6 +75,20 @@ end
     M.check(Weibull_Type1(0.9, 3.0)) # non-trivial case
 end
 
+@testitem "Weibull_Type1 numerical stability" tags=[:discrete, :weibull_type1, :numerics] begin
+    using Distributions
+    using Statistics
+
+    d = Weibull_Type1(0.9, 0.5)
+    for k in 0:20
+        p = cdf(d, k)
+        @test quantile(d, p) == k
+    end
+
+    dslow = Weibull_Type1(0.5, 0.25)
+    @test mean(dslow) ≈ 103.6491817975782 rtol=sqrt(eps(Float64)) atol=eps(Float64)
+end
+
 
 @testitem "Generic – Yule" tags=[:generic, :discrete, :yule] setup=[M] begin
     M.check(Yule(0.8))   # caso con media infinita

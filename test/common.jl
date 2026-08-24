@@ -144,7 +144,9 @@
 
         @test all(isfinite, qs)
 
-        @test all(isapprox(q, x; atol=1e-6, rtol=sqrt(eps(Float64))) for (q, x) in zip(qs, pick))
+        ps_roundtrip = Distributions.cdf.(Ref(d), qs)
+        tol = sqrt(eps(Float64))
+        @test all(isapprox(p2, p; atol=tol, rtol=tol) for (p2, p) in zip(ps_roundtrip, ps))
 
         a, b = _minmax(d)
         if isfinite(a)

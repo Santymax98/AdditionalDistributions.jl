@@ -82,6 +82,19 @@ end
     M.check(HalfCauchy(3.0))
 end
 
+@testitem "HalfCauchy extreme-tail stability" tags=[:continuous, :halfcauchy, :numerics] begin
+    using Distributions
+
+    d = HalfCauchy(1.0)
+    x = 1e155
+
+    expected = (2 / π / x) / x
+    @test pdf(d, x) > 0
+    @test pdf(d, x) ≈ expected rtol=1e-12
+    @test isfinite(logpdf(d, x))
+    @test logpdf(d, x) ≈ log(2 / π) - 2log(x) atol=1e-12
+end
+
 @testitem "Generic – HalfNormal" tags=[:generic, :continuous, :halfnormal] setup=[M] begin
     M.check(HalfNormal())
     M.check(HalfNormal(0.5))

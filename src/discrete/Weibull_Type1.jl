@@ -58,36 +58,65 @@ scale(d::Weibull_Type1) = d.q
 shape(d::Weibull_Type1) = d.β
 
 #statistic
-function _weibull_type1_sum(f::F, ::Type{T}, start::Integer; atol::Real = eps(T), rtol::Real = sqrt(eps(T)), maxiter::Integer = 10_000_000,) where {F,T<:AbstractFloat}
+@inline function _weibull_type1_logpmf(logq, β, x)
+    xβ = x^β
+    Δ = iszero(x) ? one(xβ) : xβ * expm1(β * log1p(inv(x)))
+    a = logq * xβ
+    b = logq * Δ
+    return a + (b < -log(2) ? log1p(-exp(b)) : log(-expm1(b)))
+end
 
+function _weibull_type1_sum(
+    f::F,
+    tailf::G,
+    decreasing::H,
+    ::Type{T},
+    start::Integer;
+    atol::Real=eps(T),
+    rtol::Real=sqrt(eps(T)),
+    maxiter::Integer=10_000_000,
+) where {F,G,H,T<:AbstractFloat}
     s = zero(T)
     c = zero(T)
 
     atol_T = T(atol)
     rtol_T = T(rtol)
+    next_tail_check = start
 
     for k in start:maxiter
         term = T(f(k))
 
-        if term == zero(T)
-            return s + c
-        end
-
         t = s + term
-
         if abs(s) >= abs(term)
             c += (s - t) + term
         else
             c += (term - t) + s
         end
-
         s = t
         total = s + c
+        tol = max(atol_T, rtol_T * abs(total))
 
-        if k > start && abs(term) <= max(atol_T, rtol_T * abs(total))
-            return total
+        candidate = term == zero(T) || (k > start && abs(term) <= tol)
+        if candidate && (term == zero(T) || k >= next_tail_check) && decreasing(T(k))
+            # For a nonnegative decreasing tail f, the integral test gives
+            # sum_{j=k+1}^∞ f(j) <= integral_k^∞ f(x) dx.
+            tail, err = QuadGK.quadgk(
+                tailf,
+                T(k),
+                T(Inf);
+                atol=zero(T),
+                rtol=sqrt(eps(T)),
+            )
+            tail_upper = abs(tail) + abs(err)
+            tail_upper <= tol && return total
+            next_tail_check = max(k + 1, min(maxiter, 2k))
+        end
+
+        if term == zero(T)
+            throw(ArgumentError("series terms underflowed before the requested tolerance was reached"))
         end
     end
+
     throw(ArgumentError("series did not converge after $maxiter terms"))
 end
 
@@ -97,8 +126,17 @@ function Statistics.mean(d::Weibull_Type1; kwargs...)
     if β == one(T)
         return q / (one(T) - q)
     end
+
     logq = log(q)
-    return _weibull_type1_sum(k -> exp(logq * (T(k)^β)), T, 1; kwargs...)
+    tailf = x -> isinf(x) ? zero(T) : exp(logq * x^β)
+    return _weibull_type1_sum(
+        k -> tailf(T(k)),
+        tailf,
+        x -> true,
+        T,
+        1;
+        kwargs...
+    )
 end
 
 function Statistics.var(d::Weibull_Type1; kwargs...)
@@ -107,24 +145,61 @@ function Statistics.var(d::Weibull_Type1; kwargs...)
     if β == one(T)
         return q / (one(T) - q)^2
     end
+
     logq = log(q)
+    c0 = -logq
     μ = Statistics.mean(d; kwargs...)
-    m2 = _weibull_type1_sum(k -> (T(2) * T(k) - one(T)) * exp(logq * (T(k)^β)), T, 1; kwargs...)
+
+    tailf = x -> isinf(x) ? zero(T) : (T(2) * x - one(T)) * exp(logq * x^β)
+    decreasing = x -> begin
+        x >= one(T) || return false
+        return T(2) / (T(2) * x - one(T)) <= c0 * β * x^(β - one(T))
+    end
+
+    m2 = _weibull_type1_sum(
+        k -> tailf(T(k)),
+        tailf,
+        decreasing,
+        T,
+        1;
+        kwargs...
+    )
     σ2 = m2 - μ^2
     return σ2 < zero(T) ? zero(T) : σ2
 end
+
 Statistics.std(d::Weibull_Type1; kwargs...) = sqrt(Statistics.var(d; kwargs...))
+
 function StatsBase.entropy(d::Weibull_Type1; kwargs...)
     q, β = float(d.q), float(d.β)
     T = typeof(q + β)
     if β == one(T)
         return -log1p(-q) - (q / (one(T) - q)) * log(q)
     end
+
+    logq = log(q)
+    c0 = -logq
+    tailf = x -> begin
+        isinf(x) && return zero(T)
+        lp = _weibull_type1_logpmf(logq, β, x)
+        return isfinite(lp) ? -exp(lp) * lp : zero(T)
+    end
+
+    decreasing = x -> begin
+        lp = _weibull_type1_logpmf(logq, β, x)
+        lp <= -one(T) || return false
+
+        # For β <= 1 the continuous PMF extension is decreasing. For β > 1,
+        # the condition below is sufficient for it to be decreasing from x onward.
+        β <= one(T) && return true
+        x > zero(T) || return false
+        return x^β >= (β - one(T)) / (c0 * β)
+    end
+
     return _weibull_type1_sum(
-        k -> begin
-            lp = Distributions.logpdf(d, k)
-            isfinite(lp) ? -exp(lp) * lp : zero(T)
-        end,
+        k -> tailf(T(k)),
+        tailf,
+        decreasing,
         T,
         0;
         kwargs...
@@ -152,21 +227,28 @@ function Distributions.logpdf(d::Weibull_Type1, x::Real)
     x >= 0 || return -Inf
     isinteger(x) || return -Inf
     q, β = d.q, d.β
-    k = floor(x)
-    logq = log(q)
-    a = logq * k^β
-    b = logq * ((k + 1)^β - k^β)
-    # log(q^(k^β) - q^((k+1)^β))
-    # = k^β log(q) + log(1 - exp(((k+1)^β - k^β)log(q))).
-    return a + (b < -log(2) ? log1p(-exp(b)) : log(-expm1(b)))
+    return _weibull_type1_logpmf(log(q), β, floor(x))
 end
 
 function Distributions.quantile(d::Weibull_Type1, p::Real)
     (0 <= p <= 1) || throw(DomainError(p, "p must be in [0, 1]"))
     p == 0 && return 0
     p == 1 && return oftype(float(d.q), Inf)
+
     q, β = d.q, d.β
-    return max(0, ceil(Int, (log1p(-p) / log(q))^(1 / β) - 1))
+    t = (log1p(-p) / log(q))^(1 / β)
+    k = max(0, floor(Int, t))
+
+    # Floating-point rounding can place t just above or below an integer at a
+    # CDF jump. Verify the candidate against the discrete quantile definition.
+    while k > 0 && Distributions.cdf(d, k - 1) >= p
+        k -= 1
+    end
+    while Distributions.cdf(d, k) < p
+        k += 1
+    end
+
+    return k
 end
 
 function Distributions.rand(rng::Distributions.AbstractRNG, d::Weibull_Type1)

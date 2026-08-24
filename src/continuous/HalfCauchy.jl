@@ -53,16 +53,34 @@ end
 
 function Distributions.pdf(d::HalfCauchy, x::Real)
     σ = d.σ
-    insupport(d, x) || return 0.0
+    isnan(float(x)) && return NaN
+    x < 0 && return 0.0
     isinf(x) && return 0.0
-    return (2 / (π * σ)) * (1 / (1 + (x / σ)^2))
+
+    c = 2 / π
+    if x <= σ
+        z = x / σ
+        return (c / σ) / (1 + z * z)
+    else
+        r = σ / x
+        return (c / x) * r / (1 + r * r)
+    end
 end
 
 function Distributions.logpdf(d::HalfCauchy, x::Real)
     σ = d.σ
-    insupport(d, x) || return -Inf
+    isnan(float(x)) && return NaN
+    x < 0 && return -Inf
     isinf(x) && return -Inf
-    return log(2 / (π * σ)) - log(1 + (x / σ)^2)
+
+    logc = log(2 / π)
+    if x <= σ
+        z = x / σ
+        return logc - log(σ) - log1p(z * z)
+    else
+        r = σ / x
+        return logc + log(σ) - 2log(x) - log1p(r * r)
+    end
 end
 
 function Distributions.quantile(d::HalfCauchy, q::Real)

@@ -80,6 +80,7 @@ function _logpdf_delaporte(d::Delaporte, x::Integer)
 end
 
 function Distributions.cdf(d::Delaporte, x::Real)
+    isnan(float(x)) && return NaN
     x < 0 && return 0.0
     x == Inf && return 1.0
     !isfinite(x) && return 0.0

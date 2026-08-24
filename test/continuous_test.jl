@@ -10,6 +10,13 @@ end
     M.check(Argus(3.0, 4.0))
 end
 
+@testitem "Generic – Asymmetric Laplace" tags=[:generic, :continuous, :asymlaplace] setup=[M] begin
+    M.check(AsymLaplace(0.0, 1.0, 1.0))
+    M.check(AsymLaplace(2.0, 3.0, 0.5))
+    M.check(AsymLaplace(-1.0, 2.0, 2.0))
+end
+
+
 @testitem "Generic – Benini" tags=[:generic, :continuous, :benini] setup=[M] begin
     M.check(Benini(1.0, 1.0, 1.0))
     M.check(Benini(3.0, 4.0, 5.0))
@@ -67,6 +74,24 @@ end
     M.check(Gompertz(0.5, 1.5))
     M.check(Gompertz(2.0, 3.0))
     M.check(Gompertz(0.1, 0.2))
+end
+
+@testitem "Generic – HalfCauchy" tags=[:generic, :continuous, :halfcauchy] setup=[M] begin
+    M.check(HalfCauchy())
+    M.check(HalfCauchy(0.5))
+    M.check(HalfCauchy(3.0))
+end
+
+@testitem "Generic – HalfNormal" tags=[:generic, :continuous, :halfnormal] setup=[M] begin
+    M.check(HalfNormal())
+    M.check(HalfNormal(0.5))
+    M.check(HalfNormal(3.0))
+end
+
+@testitem "Generic – HalfTDist" tags=[:generic, :continuous, :halftdist] setup=[M] begin
+    M.check(HalfTDist())
+    M.check(HalfTDist(0.5))
+    M.check(HalfTDist(3.0))
 end
 
 @testitem "Generic – IrwinHall" tags=[:generic, :continuous, :irwinhall] setup=[M] begin

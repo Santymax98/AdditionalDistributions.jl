@@ -47,9 +47,11 @@ Statistics.var(d::ZIP) = d.λ * (1 - d.p) * (1 + d.p * d.λ)
 #evaluate functions CDF, PDF, logPDF, Quantil
 function Distributions.cdf(d::ZIP, x::Real)
     λ, p = d.λ, d.p
-    if !insupport(d, x)
-        return 0.0
-    end
+    isnan(float(x)) && return NaN
+    x < 0 && return 0.0
+    x == Inf && return 1.0
+    !isfinite(x) && return 0.0
+
     x = floor(Int, x)
     cdf_value = 0.0
     for k in 0:x

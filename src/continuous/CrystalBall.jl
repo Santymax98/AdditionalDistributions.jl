@@ -63,6 +63,7 @@ Statistics.var(d::CrystalBall) = d.m > 3 ? moments(d, 2) - moments(d, 1)^2 : NaN
 
 function Distributions.cdf(d::CrystalBall, x::Real)
     α, m, x̄, σ = d.α, d.m, d.x̄, d.σ
+    isnan(float(x)) && return NaN
     x == -Inf && return zero(partype(d))
     x == Inf && return one(partype(d))
 

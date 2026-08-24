@@ -65,13 +65,12 @@ StatsBase.mode(d::Argus) = (d.c / (sqrt(2) * d.χ)) * sqrt((d.χ^2 - 2) + sqrt(d
 
 function Distributions.cdf(d::Argus, x::Real)
     χ, c = d.χ, d.c
-    _insupport = insupport(d, x)
-    if _insupport
-        term = χ * sqrt(1 - x^2/c^2)
-        return 1 -  (Ψ(term)/Ψ(χ))
-    else
-        return 0.0            
-    end
+    isnan(float(x)) && return NaN
+    x <= 0 && return 0.0
+    x >= c && return 1.0
+
+    term = χ * sqrt(1 - x^2 / c^2)
+    return 1 - Ψ(term) / Ψ(χ)
 end
 
 function Distributions.pdf(d::Argus, x::Real)

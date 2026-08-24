@@ -70,12 +70,11 @@ StatsBase.mode(d::Benktander_Type2) = 1.0
 
 function Distributions.cdf(d::Benktander_Type2, x::Real)
     a, b = d.a, d.b
-    _insupport = insupport(d, x)
-    if _insupport
-        return 1 -  x^(b-1) * exp((a/b)*(1-x^b))
-    else
-        return 0.0            
-    end
+    isnan(float(x)) && return NaN
+    x <= 1 && return 0.0
+    isinf(x) && return 1.0
+
+    return 1 - x^(b - 1) * exp((a / b) * (1 - x^b))
 end
 
 function Distributions.pdf(d::Benktander_Type2, x::Real)

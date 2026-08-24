@@ -51,6 +51,7 @@ StatsBase.mode(d::Zipf) = 1
 #evaluate functions CDF, PDF, logPDF, Quantil
 function Distributions.cdf(d::Zipf, x::Real)
     N, s = d.N, d.s
+    isnan(float(x)) && return NaN
     if x < 1
         return 0.0
     elseif x >= N

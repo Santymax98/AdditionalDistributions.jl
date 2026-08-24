@@ -42,6 +42,7 @@ StatsBase.mode(d::Zeta) = 1
 
 #evaluate functions CDF, PDF, logPDF, Quantil
 function Distributions.cdf(d::Zeta, x::Real)
+    isnan(float(x)) && return NaN
     x == Inf && return 1.0
     !isfinite(x) && return 0.0
     x < 1 && return 0.0

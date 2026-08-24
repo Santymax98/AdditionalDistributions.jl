@@ -49,9 +49,10 @@ Statistics.var(d::ZIB) = (1 - d.p) * (d.n * d.θ * (1 - d.θ) + d.p * d.n^2 * d.
 # CDF function
 function Distributions.cdf(d::ZIB, x::Real)
     n, θ, p = d.n, d.θ, d.p
-    if !insupport(d, x)
-        return 0.0
-    end
+    isnan(float(x)) && return NaN
+    x < 0 && return 0.0
+    x >= n && return 1.0
+
     x = floor(Int, x)
     cdf_value = 0.0
     for k in 0:x

@@ -55,12 +55,11 @@ StatsBase.entropy(d::Bradford) = log(1+d.a)/2.0 - log(d.a/log(1+d.a))
 # Evaluate functions CDF, PDF, logPDF, quantile
 function Distributions.cdf(d::Bradford, x::Real)
     a = d.a
-    _insupport = insupport(d, x)
-    if _insupport
-        return LogExpFunctions.log1p(a*x) / LogExpFunctions.log1p(a)
-    else
-        return 0.0            
-    end
+    isnan(float(x)) && return NaN
+    x <= 0 && return 0.0
+    x >= 1 && return 1.0
+
+    return LogExpFunctions.log1p(a * x) / LogExpFunctions.log1p(a)
 end
 
 function Distributions.pdf(d::Bradford, x::Real)

@@ -53,12 +53,13 @@ StatsBase.entropy(d::Maxwell) = log(d.a * sqrt(2*π)) + Base.MathConstants.euler
 # Evaluate functions CDF, PDF, logPDF, quantile
 function Distributions.cdf(d::Maxwell, x::Real)
     a = d.a
-    _insupport = insupport(d, x)
-    if _insupport
-        return SpecialFunctions.erf(x/(sqrt(2)*a)) - sqrt(2/π) * (x/a) * exp(-(x^2/(2*a^2)))
-    else
-        return 0.0            
-    end
+    isnan(float(x)) && return NaN
+    x <= 0 && return 0.0
+    isinf(x) && return 1.0
+
+    z = x / a
+    value = SpecialFunctions.erf(z / sqrt(2)) - sqrt(2 / π) * z * exp(-z^2 / 2)
+    return clamp(value, zero(value), one(value))
 end
 
 function Distributions.pdf(d::Maxwell, x::Real)

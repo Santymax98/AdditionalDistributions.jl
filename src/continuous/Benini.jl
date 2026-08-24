@@ -64,12 +64,11 @@ Statistics.median(d::Benini) = d.σ * exp((-d.α + sqrt(d.α^2 + d.β * log(16.0
 
 function Distributions.cdf(d::Benini, x::Real)
     α, β, σ = d.α, d.β, d.σ
-    _insupport = insupport(d, x)
-    if _insupport
-        return 1 -  (σ/x)^α * exp(-β * (log(x/σ))^2)
-    else
-        return 0.0            
-    end
+    isnan(float(x)) && return NaN
+    x <= σ && return 0.0
+    isinf(x) && return 1.0
+
+    return 1 - (σ / x)^α * exp(-β * log(x / σ)^2)
 end
 
 function Distributions.pdf(d::Benini, x::Real)

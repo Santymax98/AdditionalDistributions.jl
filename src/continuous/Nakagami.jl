@@ -58,12 +58,11 @@ StatsBase.mode(d::Nakagami) = ((2*d.m - 1)*d.Ω / (2*d.m))^(1/2)
 
 function Distributions.cdf(d::Nakagami, x::Real)
     m, Ω = d.m, d.Ω
-    _insupport = insupport(d, x)
-    if _insupport
-        return SpecialFunctions.gamma_inc(m, (m/Ω) * x^2)[1]
-    else
-        return 0.0            
-    end
+    isnan(float(x)) && return NaN
+    x <= 0 && return 0.0
+    isinf(x) && return 1.0
+
+    return SpecialFunctions.gamma_inc(m, (m / Ω) * x^2)[1]
 end
 
 function Distributions.pdf(d::Nakagami, x::Real)

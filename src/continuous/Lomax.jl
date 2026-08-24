@@ -72,7 +72,10 @@ StatsBase.kurtosis(d::Lomax) = d.α > 4 ? (6 *(d.α^3 + d.α^2 - 6*d.α - 2))/(d
 
 function Distributions.cdf(d::Lomax, x::Real)
     T = promote_type(typeof(float(x)), typeof(float(d.α)), typeof(float(d.λ)))
-    (x < 0) && return zero(T)
+    isnan(float(x)) && return T(NaN)
+    x <= 0 && return zero(T)
+    x == Inf && return one(T)
+
     α, λ = T(d.α), T(d.λ)
     xx = T(x)
     return -expm1(-α * log1p(xx / λ))

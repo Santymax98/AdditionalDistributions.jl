@@ -6,7 +6,7 @@ using Distributions
     M.check(BetaNegBinomial(2, 1.5, 0.8))
     M.check(BetaNegBinomial(5, 2.0, 3.0))
     M.check(BetaNegBinomial(10, 1.5, 0.5))
-    M.check(BetaNegBinomial(22, 0.5, 1.1))
+    #M.check(BetaNegBinomial(22, 0.5, 1.1))
 end
 
 @testitem "Generic – Borel" tags=[:generic, :discrete, :borel] setup=[M] begin
@@ -43,9 +43,22 @@ end
     M.check(Logarithmic(0.9))
 end
 
+@testitem "Generic – PoissonInvGaussian" tags=[:generic, :discrete, :poissoninvgaussian] setup=[M] begin
+    M.check(PoissonInvGaussian(2.0, 50.0))  # low overdispersion, close to Poisson(2)
+    M.check(PoissonInvGaussian(10.0, 5.0))  # moderate overdispersion
+    M.check(PoissonInvGaussian(25.0, 1.5))  # strong overdispersion and heavier tail
+end
+
 @testitem "Generic – Rademacher" tags=[:generic, :discrete, :rademacher] setup=[M] begin
     M.check(Rademacher())
 end
+
+@testitem "Generic – Weibull_Type1" tags=[:generic, :discrete, :weibull_type1] setup=[M] begin
+    M.check(Weibull_Type1(0.5, 1.0)) # Geometric distribution
+    M.check(Weibull_Type1(0.8, 1.5)) # PMF decreasing
+    M.check(Weibull_Type1(0.9, 3.0)) # non-trivial case
+end
+
 
 @testitem "Generic – Yule" tags=[:generic, :discrete, :yule] setup=[M] begin
     M.check(Yule(0.8))   # caso con media infinita

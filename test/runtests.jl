@@ -13,7 +13,7 @@ using AdditionalDistributions
 end
 
 # Run the complete TestItems suite by default.
-@run_package_tests
+@run_package_tests #(filter = ti -> :discrete in ti.tags)
 
 # Useful local filters for development:
 # @run_package_tests (filter = ti -> :multivariate in ti.tags)

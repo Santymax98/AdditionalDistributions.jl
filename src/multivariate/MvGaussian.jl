@@ -1,123 +1,241 @@
 """
     MvGaussian(μ::AbstractVector, Σ::AbstractMatrix)
 
-A *Multivariate Gaussian (Normal) distribution* equivalent in behavior to
-[`Distributions.MvNormal`](https://juliastats.org/Distributions.jl/stable/multivariate/#Distributions.MvNormal),
-but using a **custom folded batch randomized quasi-Monte Carlo integrator** for the cumulative
-distribution function (`cdf`).
+A multivariate Gaussian distribution backed by `Distributions.AbstractMvNormal`,
+with rectangular cumulative probabilities evaluated by the custom
+Genz/Richtmyer randomized quasi-Monte Carlo backend in
+`AdditionalDistributions.jl`.
 
-This type preserves all the standard functionality of `MvNormal` — including
-`pdf`, `logpdf`, `rand`, `mean`, and `cov` — while providing its own
-implementation of `cdf(a, b)` for rectangular probabilities under a
-multivariate normal law.
+`MvGaussian` participates in the `Distributions.jl` `AbstractMvNormal`
+interface, so standard functionality such as `pdf`, `logpdf`, `rand`,
+`insupport`, `mode`, and `entropy` is inherited from `Distributions.jl`
+through a small set of delegated primitives.
 
 ```julia
 MvGaussian(Σ)        # zero-mean version
 MvGaussian(μ, Σ)     # with explicit mean and covariance
-params(d)            # returns (μ, Σ)
-cdf(d, a, b)         # evaluates P(a ≤ X ≤ b)
+
+params(d)            # (μ, Σ)
+cdf(d, x)            # P(X₁ ≤ x₁, ..., Xₚ ≤ xₚ)
+cdf(d, a, b)         # P(a ≤ X ≤ b)
+cdf_result(d, a, b)  # structured numerical result
 ```
-
-External link:
-
-* [Multivariate normal distribution - Wikipedia](https://en.wikipedia.org/wiki/Multivariate_normal_distribution)
 """
-struct MvGaussian{D<:Distributions.MvNormal} <: Distributions.ContinuousMultivariateDistribution
+struct MvGaussian{D<:Distributions.AbstractMvNormal} <: Distributions.AbstractMvNormal
     dist::D
 end
 
-MvGaussian(μ::AbstractVector, Σ::AbstractMatrix) = MvGaussian(Distributions.MvNormal(μ, Σ))
-MvGaussian(Σ::AbstractMatrix) = MvGaussian(Distributions.MvNormal(zeros(size(Σ, 1)), Σ))
+MvGaussian(μ::AbstractVector, Σ::AbstractMatrix) =
+    MvGaussian(Distributions.MvNormal(μ, Σ))
+
+MvGaussian(Σ::AbstractMatrix) =
+    MvGaussian(Distributions.MvNormal(Σ))
 
 
-# Delegaciones
-Statistics.mean(d::MvGaussian) = Statistics.mean(d.dist)
-Statistics.cov(d::MvGaussian)  = Statistics.cov(d.dist)
-Distributions.pdf(d::MvGaussian, x::AbstractVector)    = Distributions.pdf(d.dist, x)
-Distributions.logpdf(d::MvGaussian, x::AbstractVector) = Distributions.logpdf(d.dist, x)
-Distributions.rand(rng::Distributions.AbstractRNG, d::MvGaussian) = Distributions.rand(rng, d.dist)
-Distributions.rand(rng::Distributions.AbstractRNG, d::MvGaussian, n::Int) = Distributions.rand(rng, d.dist, n)
-Distributions.insupport(d::MvGaussian, x::AbstractVector)         = Distributions.insupport(d.dist, x)
-params(d::MvGaussian) = (Statistics.mean(d), Statistics.cov(d))
+# ------------------------------------------------------------------
+# AbstractMvNormal primitives
+# ------------------------------------------------------------------
+
 Base.length(d::MvGaussian) = length(d.dist)
 
+Base.eltype(::Type{MvGaussian{D}}) where {D<:Distributions.AbstractMvNormal} =
+    eltype(D)
+
+Statistics.mean(d::MvGaussian) = Statistics.mean(d.dist)
+Statistics.var(d::MvGaussian) = Statistics.var(d.dist)
+Statistics.cov(d::MvGaussian) = Statistics.cov(d.dist)
+
+params(d::MvGaussian) = params(d.dist)
+partype(d::MvGaussian) = partype(d.dist)
+
+Distributions.invcov(d::MvGaussian) =
+    Distributions.invcov(d.dist)
+
+Distributions.logdetcov(d::MvGaussian) =
+    Distributions.logdetcov(d.dist)
+
+Distributions.sqmahal(d::MvGaussian, x::AbstractVector) =
+    Distributions.sqmahal(d.dist, x)
+
+Distributions.sqmahal!(r::AbstractVector, d::MvGaussian, x::AbstractMatrix) =
+    Distributions.sqmahal!(r, d.dist, x)
+
+Distributions.gradlogpdf(d::MvGaussian, x::AbstractVector{<:Real}) =
+    Distributions.gradlogpdf(d.dist, x)
+
+Distributions._rand!(
+    rng::Distributions.AbstractRNG,
+    d::MvGaussian,
+    x::AbstractVector,
+) = Distributions._rand!(rng, d.dist, x)
+
+Distributions._rand!(
+    rng::Distributions.AbstractRNG,
+    d::MvGaussian,
+    x::AbstractMatrix,
+) = Distributions._rand!(rng, d.dist, x)
+
+
+# ------------------------------------------------------------------
+# Rectangular Gaussian probabilities
+# ------------------------------------------------------------------
 
 """
-    cdf_result(d::MvGaussian, a, b; m=1000*length(a), abseps=1e-6,
-               releps=1e-6, pivot=true, rng=Random.default_rng(),
+    cdf_result(d::Distributions.AbstractMvNormal, a, b;
+               m=1000*length(a), abseps=1e-6, releps=1e-6,
+               pivot=true, rng=Random.default_rng(),
                antithetic=false, batchsize=0, nshifts=12)
 
-Estimate the rectangular probability `P(a ≤ X ≤ b)` for a multivariate
-Gaussian distribution and return a [`CDFResult`](@ref).
+Estimate the rectangular probability `P(a ≤ X ≤ b)` for any
+`Distributions.AbstractMvNormal` and return a [`CDFResult`](@ref).
 
-The Gaussian path uses MVSORT reordering, a Genz-style conditional
-transformation, folded randomized Richtmyer QMC points, and batch evaluation.
-If the covariance matrix is diagonal, the probability is evaluated exactly by
-factorization.
-
-Use `cdf(d, a, b)` for the scalar probability, or `cdf(d, a, b; full=true)` for
-the legacy `(value, error, inform)` tuple.
+This method is owned by `AdditionalDistributions.jl`, so it can legally extend
+the CDF functionality of native `Distributions.MvNormal` objects without
+extending `Distributions.cdf(::MvNormal, ...)`.
 """
-function cdf_result(d::MvGaussian,
-                    a::AbstractVector, b::AbstractVector;
-                    m::Int=1000*length(a),
-                    abseps::Real=1e-6,
-                    releps::Real=1e-6,
-                    pivot::Bool=true,
-                    rng=Random.default_rng(),
-                    antithetic::Bool=false,
-                    batchsize::Int=0,
-                    nshifts::Int=12)
+function cdf_result(
+    d::Distributions.AbstractMvNormal,
+    a::AbstractVector,
+    b::AbstractVector;
+    m::Int=1000 * length(a),
+    abseps::Real=1e-6,
+    releps::Real=1e-6,
+    pivot::Bool=true,
+    rng=Random.default_rng(),
+    antithetic::Bool=false,
+    batchsize::Int=0,
+    nshifts::Int=12,
+)
+    n = length(d)
 
-    n = length(a)
-    length(b) == n || throw(DimensionMismatch("length(a) ≠ length(b)"))
+    length(a) == n ||
+        throw(DimensionMismatch("length(a) ≠ length(d)"))
+    length(b) == n ||
+        throw(DimensionMismatch("length(b) ≠ length(d)"))
 
     μ = Statistics.mean(d)
     Σ = Statistics.cov(d)
 
-    size(Σ) == (n, n) || throw(DimensionMismatch("Σ must be n×n"))
+    size(Σ) == (n, n) ||
+        throw(DimensionMismatch("Σ must be n×n"))
 
-    T = promote_type(Float64, eltype(a), eltype(b), eltype(μ), eltype(Σ))
+    T = promote_type(
+        Float64,
+        eltype(a),
+        eltype(b),
+        eltype(μ),
+        eltype(Σ),
+    )
 
-    if any(b .< a)
-        return CDFResult(zero(T), zero(T), 0, 0, :empty_rectangle)
+    @inbounds for i in 1:n
+        if b[i] < a[i]
+            return CDFResult(
+                zero(T),
+                zero(T),
+                0,
+                0,
+                :empty_rectangle,
+            )
+        end
     end
 
     if n == 1
-        μ1 = μ[1]
-        σ1 = sqrt(Σ[1, 1])
-        val = Distributions.cdf(Distributions.Normal(μ1, σ1), b[1]) -
-              Distributions.cdf(Distributions.Normal(μ1, σ1), a[1])
-        val = clamp(T(val), zero(T), one(T))
-        return CDFResult(val, zero(T), 0, 0, :univariate_exact)
+        μ1 = T(μ[1])
+        σ1 = sqrt(T(Σ[1, 1]))
+
+        val =
+            Distributions.cdf(
+                Distributions.Normal(μ1, σ1),
+                T(b[1]),
+            ) -
+            Distributions.cdf(
+                Distributions.Normal(μ1, σ1),
+                T(a[1]),
+            )
+
+        return CDFResult(
+            clamp(T(val), zero(T), one(T)),
+            zero(T),
+            0,
+            0,
+            :univariate_exact,
+        )
     end
 
-    Σb = T.(Σ)
+    Σb = Matrix{T}(Σ)
     ab = T.(a)
     bb = T.(b)
     δb = T.(μ)
 
-    res = mvtcdf(Σb, ab, bb;
-                 ν=0,
-                 δ=δb,
-                 maxpts=m,
-                 abseps=abseps,
-                 releps=releps,
-                 assume_correlation=false,
-                 pivot=pivot,
-                 antithetic=antithetic,
-                 rng=rng,
-                 batchsize=batchsize,
-                 nshifts=nshifts)
+    res = mvtcdf(
+        Σb,
+        ab,
+        bb;
+        ν=0,
+        δ=δb,
+        maxpts=m,
+        abseps=abseps,
+        releps=releps,
+        assume_correlation=false,
+        pivot=pivot,
+        antithetic=antithetic,
+        rng=rng,
+        batchsize=batchsize,
+        nshifts=nshifts,
+    )
 
-    return CDFResult(T(res.value), T(res.error), res.inform, m, :mvsort_rqmc)
+    return CDFResult(
+        T(res.value),
+        T(res.error),
+        res.inform,
+        m,
+        :mvsort_rqmc,
+    )
 end
 
-function Distributions.cdf(d::MvGaussian,
-                           a::AbstractVector, b::AbstractVector;
-                           full::Bool=false,
-                           kwargs...)
 
+# Private scalar-value convenience API owned by AdditionalDistributions.
+_cdf(
+    d::Distributions.AbstractMvNormal,
+    a::AbstractVector,
+    b::AbstractVector;
+    kwargs...,
+) = cdf_result(d, a, b; kwargs...).value
+
+function _cdf(
+    d::Distributions.AbstractMvNormal,
+    x::AbstractVector;
+    kwargs...,
+)
+    length(x) == length(d) ||
+        throw(DimensionMismatch("length(x) ≠ length(d)"))
+
+    a = fill(-Inf, length(d))
+    return _cdf(d, a, x; kwargs...)
+end
+
+
+# Public Distributions.cdf methods are defined only for our type.
+function Distributions.cdf(
+    d::MvGaussian,
+    a::AbstractVector,
+    b::AbstractVector;
+    full::Bool=false,
+    kwargs...,
+)
     res = cdf_result(d, a, b; kwargs...)
     return full ? (res.value, res.error, res.inform) : res.value
+end
+
+function Distributions.cdf(
+    d::MvGaussian,
+    x::AbstractVector;
+    full::Bool=false,
+    kwargs...,
+)
+    length(x) == length(d) ||
+        throw(DimensionMismatch("length(x) ≠ length(d)"))
+
+    a = fill(-Inf, length(d))
+    return Distributions.cdf(d, a, x; full=full, kwargs...)
 end

@@ -10,8 +10,11 @@ P(a_i \le X_i \le b_i,\quad i = 1,\ldots,d).
 
 The package currently focuses on:
 
-- `MvGaussian`, based on `Distributions.MvNormal`;
-- `MvTStudent`, based on `Distributions.MvTDist`.
+- `MvGaussian`, which participates directly in the
+  `Distributions.AbstractMvNormal` interface;
+- `MvTStudent`, a typed wrapper around `Distributions.AbstractMvTDist`;
+- `cdf_result` support for both the package wrappers and native
+  `Distributions.MvNormal` / `Distributions.MvTDist` objects.
 
 ```@docs
 MvGaussian
@@ -67,6 +70,44 @@ res = cdf_result(mvt, lower, upper;
 
 The Student-t CDF is usually harder than the Gaussian CDF because it uses the normal-scale-mixture representation and an additional chi-square coordinate. Small degrees of freedom, high dimension, strong dependence, and tail rectangles may require larger `m`.
 
+## Native `Distributions.jl` interoperability
+
+The same rectangular-probability backend is available directly for native
+`Distributions.jl` multivariate distributions:
+
+```julia
+using Distributions
+
+dn = MvNormal(zeros(d), Σ)
+rn = cdf_result(dn, lower, upper;
+    m = 100_000,
+    rng = MersenneTwister(1234),
+)
+
+dt = MvTDist(ν, zeros(d), Σ)
+rt = cdf_result(dt, lower, upper;
+    m = 1_000_000,
+    nshifts = 16,
+    rng = MersenneTwister(1234),
+)
+```
+
+This is intentionally provided through `cdf_result`, a function owned by
+`AdditionalDistributions.jl`. The package does **not** add
+`Distributions.cdf(::MvNormal, ...)` or `Distributions.cdf(::MvTDist, ...)`
+methods, avoiding type piracy.
+
+For package-owned wrapper types, both one-sided and rectangular scalar CDFs are
+available:
+
+```julia
+cdf(mvnormal, upper)         # P(Xᵢ ≤ upperᵢ for all i)
+cdf(mvnormal, lower, upper)  # P(lowerᵢ ≤ Xᵢ ≤ upperᵢ for all i)
+
+cdf(mvt, upper)
+cdf(mvt, lower, upper)
+```
+
 ## API summary
 
 ```julia
@@ -79,7 +120,8 @@ returns only the probability estimate.
 cdf_result(dist, lower, upper; kwargs...)
 ```
 
-returns a structured result:
+accepts `MvGaussian`, `MvTStudent`, native `MvNormal`, and native `MvTDist`
+objects and returns a structured result:
 
 ```julia
 res.value

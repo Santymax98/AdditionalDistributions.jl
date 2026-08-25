@@ -4,6 +4,7 @@ using Distributions
 import Distributions: @check_args, @distr_support, @inline, params, partype
 import Roots
 import SpecialFunctions
+import FFTW
 import Random
 import Base: @propagate_inbounds
 import Statistics
@@ -18,6 +19,7 @@ import Primes
 const normal_dist = Distributions.Normal()
 const sqrt2π = sqrt(2.0 * π)
 
+include("multivariate/QMCLattice.jl")
 include("utils.jl")
 
 # ─────────────────────────────────────────────────────────────

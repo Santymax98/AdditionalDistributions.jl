@@ -4,7 +4,7 @@ layout: home
 
 title: AdditionalDistributions.jl Documentation
 
-description: Advanced and extended probability distributions for Julia, compatible with Distributions.jl.
+description: Additional probability distributions for Julia, compatible with Distributions.jl.
 
 head:
   - - link
@@ -13,7 +13,7 @@ head:
 
 hero:
   name: AdditionalDistributions.jl
-  text: Extended probability distributions for Julia
+  text: Additional probability distributions for Julia
   tagline: Continuous, discrete, and multivariate distributions with a familiar Distributions.jl interface.
   image:
     src: logo.png
@@ -36,22 +36,17 @@ hero:
 
 # AdditionalDistributions.jl
 
-`AdditionalDistributions.jl` is a Julia package for additional probability
-distributions built on top of the `Distributions.jl` interface.
-
-The package extends the Julia statistics ecosystem with univariate and
-multivariate probability distributions that are useful in statistics,
-actuarial science, reliability analysis, risk modeling, Bayesian modeling,
-simulation, and applied probability.
+`AdditionalDistributions.jl` extends the Julia statistics ecosystem with additional probability distributions while following the `Distributions.jl` interface whenever possible.
 
 ## Main features
 
-- Additional continuous distributions, including heavy-tailed and reliability models.
-- Additional discrete count distributions, including zero-inflated and heavy-tailed models.
+- Continuous and discrete probability distributions beyond the core `Distributions.jl` catalog.
+- Zero-inflated, heavy-tailed, reliability, and count models.
 - Multivariate Gaussian and Student-t distributions.
-- Rectangular CDF utilities for multivariate Gaussian and Student-t distributions.
-- Compatibility with the standard `Distributions.jl` API.
-- Ecosystem examples with `HypothesisTests.jl`, `Copulas.jl`, and `Turing.jl`.
+- Rectangular multivariate CDF evaluation through randomized QMC.
+- Direct `cdf_result` interoperability with native `MvNormal` and `MvTDist`.
+- Reproducible numerical integration and structured diagnostics.
+- Examples with packages from the Julia statistics ecosystem.
 
 ## Installation
 
@@ -60,34 +55,27 @@ using Pkg
 Pkg.add("AdditionalDistributions")
 ```
 
-## Documentation overview
-
-Use the guide pages to get started, browse the distribution index, and explore
-examples of integration with the Julia statistics ecosystem.
-
 ## Quick example
 
 ```julia
 using AdditionalDistributions
 using Distributions
 
-x = Lomax(2.0, 3.0)
-pdf(x, 1.5)
-cdf(x, 1.5)
+d = Lomax(2.0, 3.0)
 
-z = ZIP(2.0, 0.3)
-pdf(z, 0)
-cdf(z, 4)
+pdf(d, 1.5)
+cdf(d, 1.5)
+quantile(d, 0.9)
 ```
 
-See the [Distribution index](Distributions.md) for the public API documented in this package.
+Browse the [Distribution index](Distributions.md) for the available distributions.
 
-## Multivariate rectangular probabilities
+## Multivariate probabilities
 
-For a multivariate distribution, the package evaluates probabilities of rectangles:
+For a multivariate random vector \(X\), rectangular probabilities have the form
 
 ```math
-P(a_i \leq X_i \leq b_i,\quad i=1,\ldots,d).
+P(a_i \le X_i \le b_i,\quad i=1,\ldots,d).
 ```
 
 ```julia
@@ -100,57 +88,33 @@ d = 5
 Σ[diagind(Σ)] .= 1.0
 
 lower = fill(-1.0, d)
-upper = fill( 1.0, d)
+upper = fill(1.0, d)
 
-mvnormal = MvGaussian(zeros(d), Σ)
-res = cdf_result(mvnormal, lower, upper;
-    m = 100_000,
-    rng = MersenneTwister(1234),
-)
+dist = MvGaussian(zeros(d), Σ)
+res = cdf_result(dist, lower, upper; m=100_000, rng=MersenneTwister(1234))
 
 res.value
 res.error
 res.inform
 ```
 
-The randomized QMC engine is reproducible when the RNG is fixed. The reported error is an estimate, and `inform = 1` means the requested tolerance was not reached with the current integration budget.
+The same `cdf_result` interface is available for native `Distributions.MvNormal` and `Distributions.MvTDist` objects.
 
-## Benchmarks and references
+## Numerical validation
 
-Benchmark scripts are available in the repository under `benchmark/`. They compare selected multivariate Gaussian cases against `MvNormalCDF.jl` and provide reproducible performance diagnostics.
+The multivariate numerical core is validated with deterministic structured reference probabilities whenever available.
 
-Student-t reference values are checked against selected values generated with R's `mvtnorm::pmvt` using the `GenzBretz` algorithm.
+Independent comparisons with `MvNormalCDF.jl`, SciPy, and R's `mvtnorm` are used to evaluate accuracy and performance, but randomized external implementations are not treated as ground truth.
 
-See [Benchmarks](benchmarks.md) and [Accuracy and Reproducibility](accuracy.md) for details.
+See [Accuracy](accuracy.md), [Benchmarks](benchmarks.md), and [Multivariate distributions](bestiary/multivariate.md) for details.
 
-## Citation
-
-If you use AdditionalDistributions.jl in your research, please cite it as:
-
-> S. Jiménez (2025). *AdditionalDistributions.jl — Advanced and Extended Probability Distributions in Julia*. Available at: https://github.com/Santymax98/AdditionalDistributions.jl
-
-BibTeX:
-
-```bibtex
-@misc{Jimenez2025AdditionalDistributions,
-    author = {Santiago Jimenez},
-    title = {AdditionalDistributions.jl --- Advanced and Extended Probability Distributions in Julia},
-    year = {2025},
-    url = {https://github.com/Santymax98/AdditionalDistributions.jl},
-    note = {Julia package}
-}
-```
-
-If the package has been useful in your work, consider starring the repository. It helps the project gain visibility and supports future development.
-
-## Documentation map
+## Explore
 
 - [Getting Started](getting_started.md)
-- [Distribution index](Distributions.md)
+- [Examples](examples.md)
 - [Compatibility](Compatibility.md)
-- [Accuracy and Reproducibility](accuracy.md)
+- [Distribution Index](Distributions.md)
+- [Accuracy](accuracy.md)
 - [Benchmarks](benchmarks.md)
-- [Developer Notes](developer.md)
-- [Discrete distributions](bestiary/discrete.md)
-- [Continuous distributions](bestiary/continuous.md)
-- [Multivariate distributions](bestiary/multivariate.md)
+- [Ecosystem integration](ecosystem.md)
+- [Developer notes](developer.md)

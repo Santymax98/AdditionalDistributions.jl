@@ -25,9 +25,9 @@ makedocs(;
 
         "Guide" => [
             "Getting Started" => "getting_started.md",
-            "Distribution Index" => "Distributions.md",
             "Examples" => "examples.md",
             "Compatibility" => "Compatibility.md",
+            "Distribution Index" => "Distributions.md",
         ],
 
         "Numerics" => [

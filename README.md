@@ -7,84 +7,67 @@
 
 **AdditionalDistributions.jl** extends the [`Distributions.jl`](https://github.com/JuliaStats/Distributions.jl) ecosystem with additional continuous, discrete, and multivariate probability distributions.
 
-The package follows the standard `Distributions.jl` interface whenever possible: `pdf`, `logpdf`, `cdf`, `quantile`, `rand`, `mean`, `var`, `params`, `minimum`, `maximum`, and related statistical methods.
-
-It also provides native Julia routines for rectangular cumulative probabilities of multivariate Gaussian and Student-t distributions.
-
-## Documentation
-
-The stable documentation is available at:
-
-https://santymax98.github.io/AdditionalDistributions.jl/stable/
-
-The development documentation is available at:
-
-https://santymax98.github.io/AdditionalDistributions.jl/dev/
----
+The package follows the standard `Distributions.jl` interface whenever possible and also provides native Julia routines for rectangular probabilities of multivariate Gaussian and Student-t distributions.
 
 ## Installation
 
-AdditionalDistributions.jl is registered in the Julia General registry.
+AdditionalDistributions.jl is registered in the Julia General registry:
 
 ```julia
 using Pkg
 Pkg.add("AdditionalDistributions")
 ```
 
-Then load it with:
+Then:
 
 ```julia
 using AdditionalDistributions
 ```
 
-To install the development version directly from GitHub:
-
-```julia
-using Pkg
-Pkg.add(url="https://github.com/Santymax98/AdditionalDistributions.jl")
-```
-
----
-
 ## Highlights
 
-- Additional continuous and discrete univariate distributions.
-- Zero-inflated discrete models such as `ZIP`, `ZIB`, and `ZINB`.
-- Heavy-tailed distributions such as `Burr`, `Lomax`, and `Zeta`.
+- Additional continuous and discrete probability distributions.
+- Zero-inflated, heavy-tailed, reliability, and count models.
 - `MvGaussian` integrated with the `Distributions.AbstractMvNormal` interface.
-- Rectangular CDF evaluation for `MvGaussian` and `MvTStudent`.
-- Direct `cdf_result` support for native `Distributions.MvNormal` and `Distributions.MvTDist` objects.
-- Structured multivariate CDF diagnostics through `CDFResult` and `cdf_result`.
-- Reproducible randomized QMC integration when a seeded RNG is provided.
-- Reference tests and benchmark scripts for multivariate CDF evaluation.
+- `MvTStudent` built around native `Distributions.jl` Student-t distributions.
+- Rectangular Gaussian and Student-t CDF evaluation through randomized QMC.
+- Direct `cdf_result` support for native `MvNormal` and `MvTDist` objects.
+- Structured numerical diagnostics through `CDFResult`.
+- Reproducible randomized integration with seeded RNGs.
+- Integration examples with the wider Julia statistics ecosystem.
 
----
-
-## Basic usage
+## Quick start
 
 ```julia
 using AdditionalDistributions
 using Distributions
 
-x = Lomax(2.0, 3.0)
-pdf(x, 1.5)
-cdf(x, 1.5)
+d = Lomax(2.0, 3.0)
 
-z = ZIP(2.0, 0.3)
-pdf(z, 0)
-cdf(z, 4)
+pdf(d, 1.5)
+cdf(d, 1.5)
+quantile(d, 0.9)
+rand(d)
 ```
 
-Additional distributions are documented in the [stable documentation](https://santymax98.github.io/AdditionalDistributions.jl/stable/) and in the [distribution index](https://santymax98.github.io/AdditionalDistributions.jl/stable/Distributions/).
+Discrete distributions use the same interface:
 
----
+```julia
+d = ZIP(2.0, 0.3)
+
+pdf(d, 0)
+cdf(d, 4)
+rand(d)
+```
+
+See the [distribution index](https://santymax98.github.io/AdditionalDistributions.jl/stable/Distributions/) for the complete public API.
 
 ## Multivariate rectangular probabilities
 
-The multivariate API computes probabilities of rectangles
+For a multivariate random vector \(X\), the package evaluates probabilities of the form
 
 ```math
-P(a_i \le X_i \le b_i,\quad i = 1,\ldots,d).
+P(a_i \le X_i \le b_i,\quad i=1,\ldots,d).
 ```
 
 ```julia
@@ -97,114 +80,47 @@ d = 10
 Σ[diagind(Σ)] .= 1.0
 
 lower = fill(-1.0, d)
-upper = fill( 1.0, d)
+upper = fill(1.0, d)
 
-mvnormal = MvGaussian(zeros(d), Σ)
+dist = MvGaussian(zeros(d), Σ)
+res = cdf_result(dist, lower, upper; m=100_000, rng=MersenneTwister(1234))
 
-res = cdf_result(mvnormal, lower, upper;
-    m = 100_000,
-    rng = MersenneTwister(1234),
-)
-
-res.value      # estimated probability
+res.value      # probability estimate
 res.error      # estimated integration error
-res.inform     # integration status code
-res.neval      # integration budget
+res.inform     # integration status
+res.neval      # requested integration budget
 res.algorithm  # algorithm identifier
 ```
 
-`cdf(dist, lower, upper)` returns only the probability estimate. Use `cdf_result` when you need diagnostics.
+For package-owned wrappers, `cdf(dist, lower, upper)` returns only the probability estimate.
 
-For Student-t:
-
-```julia
-ν = 4.0
-mvt = MvTStudent(ν, zeros(d), Σ)
-
-res_t = cdf_result(mvt, lower, upper;
-    m = 1_000_000,
-    abseps = 1e-8,
-    releps = 1e-8,
-    nshifts = 16,
-    rng = MersenneTwister(1234),
-)
-```
-
-The multivariate Student-t implementation uses the normal-scale-mixture representation. Even with a diagonal scale matrix, its components are not treated as independent univariate Student-t random variables, because they share a common radial scale.
-
-### Native `Distributions.jl` interoperability
-
-The rectangular-probability backend can also be used directly with native
-`Distributions.jl` objects:
+The same numerical backend can also be used directly with native `Distributions.jl` objects:
 
 ```julia
 using Distributions
 
 dn = MvNormal(zeros(d), Σ)
-rn = cdf_result(dn, lower, upper; rng=MersenneTwister(1234))
+dt = MvTDist(4.0, zeros(d), Σ)
 
-dt = MvTDist(ν, zeros(d), Σ)
-rt = cdf_result(dt, lower, upper; rng=MersenneTwister(1234))
+cdf_result(dn, lower, upper; rng=MersenneTwister(1234))
+cdf_result(dt, lower, upper; rng=MersenneTwister(1234))
 ```
 
-`cdf_result` is owned by `AdditionalDistributions.jl`, so this interoperability
-does not require extending `Distributions.cdf` on external distribution types.
-For the wrapper types, the natural scalar-valued interface remains available:
+The package deliberately exposes this interoperability through `cdf_result` rather than adding `Distributions.cdf` methods to external distribution types.
 
-```julia
-cdf(MvGaussian(zeros(d), Σ), upper)
-cdf(MvGaussian(zeros(d), Σ), lower, upper)
+## Numerical methods
 
-cdf(MvTStudent(ν, zeros(d), Σ), upper)
-cdf(MvTStudent(ν, zeros(d), Σ), lower, upper)
-```
+Multivariate rectangular probabilities use Genz-style variable conditioning combined with randomized rank-1 lattice quasi-Monte Carlo integration.
 
----
+The floating-point path uses cached component-by-component lattice construction and tent transformation. Gaussian and Student-t implementations use specialized integration dimensions and Student-t radial transforms where applicable.
 
-## Multivariate CDF controls
+Accuracy is assessed against deterministic structured reference probabilities when available. Independent implementations such as `MvNormalCDF.jl`, SciPy, and R's `mvtnorm` are used for comparison rather than as ground truth.
 
-| Keyword | Meaning |
-| --- | --- |
-| `m` | Maximum integration budget. Larger values usually reduce QMC noise. |
-| `abseps` | Absolute error tolerance. |
-| `releps` | Relative error tolerance. |
-| `rng` | Random number generator used for randomized shifts. Fix it for reproducibility. |
-| `nshifts` | Number of randomized QMC shifts. Defaults: `12` for `MvGaussian`, `16` for `MvTStudent`. |
-| `batchsize` | Internal batch size. Use `0` (the default) to let the implementation choose automatically. |
-| `pivot` | Whether to use the MVSORT variable reordering step. |
-| `antithetic` | Optional antithetic reflection when available. |
+See:
 
-`inform` codes:
-
-| Code | Meaning |
-| ---: | --- |
-| `0` | Estimated error is within tolerance. |
-| `1` | Estimated error is above tolerance for the current budget. Increase `m` or relax tolerances. |
-| `2` | Invalid dimension or integration setup. |
-| `3` | Matrix appears not positive semidefinite during preparation. |
-
-`inform = 1` does **not** mean that the probability estimate is invalid. It means that the internal error estimator did not meet the requested tolerance with the current integration budget.
-
----
-
-## Benchmarks
-
-Benchmark scripts are available under `benchmark/`.
-
-```bash
-julia --project=benchmark benchmark/run_mvn_basic.jl
-julia --project=benchmark benchmark/run_mvn_compare_mvnormalcdf.jl
-```
-
-The comparison benchmark checks `MvGaussian` against `MvNormalCDF.jl` for diagonal, equicorrelated, and AR(1)-type covariance structures.
-
-Generated CSV files are written to `benchmark/results/` and are not tracked by Git.
-
-Benchmark results depend on the random seed, dimension, covariance structure, integration bounds, integration budget, Julia version, package versions, and machine. They should be interpreted as reproducible empirical comparisons for specific configurations, not as universal performance guarantees.
-
-See the [benchmarks documentation](https://santymax98.github.io/AdditionalDistributions.jl/stable/benchmarks/) for details.
-
----
+- [Accuracy and reproducibility](https://santymax98.github.io/AdditionalDistributions.jl/stable/accuracy/)
+- [Benchmarks](https://santymax98.github.io/AdditionalDistributions.jl/stable/benchmarks/)
+- [Multivariate distributions](https://santymax98.github.io/AdditionalDistributions.jl/stable/bestiary/multivariate/)
 
 ## Running tests
 
@@ -212,47 +128,15 @@ See the [benchmarks documentation](https://santymax98.github.io/AdditionalDistri
 julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-Useful local filters are documented in `test/runtests.jl`, for example:
-
-```julia
-@run_package_tests (filter = ti -> :multivariate in ti.tags)
-@run_package_tests (filter = ti -> :continuous in ti.tags)
-@run_package_tests (filter = ti -> :discrete in ti.tags)
-```
-
----
-
-## Reporting numerical issues
-
-Please include:
-
-- distribution type (`MvGaussian` or `MvTStudent`),
-- dimension,
-- `μ`, `Σ`, lower bounds and upper bounds,
-- degrees of freedom `ν` for Student-t,
-- `m`, `abseps`, `releps`, `nshifts`, `batchsize`, `pivot`,
-- RNG type and seed,
-- full `CDFResult(value, error, inform, neval, algorithm)`,
-- Julia version and platform,
-- external reference result, if available.
-
----
-
 ## Contributing
 
-Contributions are welcome. Please see [`CONTRIBUTING.md`](CONTRIBUTING.md) for development notes, test conventions, benchmark guidelines, and how to report reproducible numerical cases.
-
-Do not hesitate to star this repository to show support.
-
----
+Contributions are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for development conventions and guidelines.
 
 ## Citation
 
-If you use AdditionalDistributions.jl in your research, please cite it as:
+If you use AdditionalDistributions.jl in your research, please cite:
 
-> S. Jiménez (2025). *AdditionalDistributions.jl — Advanced and Extended Probability Distributions in Julia*. Available at: https://github.com/Santymax98/AdditionalDistributions.jl
-
-BibTeX:
+> S. Jiménez (2025). *AdditionalDistributions.jl — Advanced and Extended Probability Distributions in Julia*.
 
 ```bibtex
 @misc{Jimenez2025AdditionalDistributions,
@@ -263,8 +147,6 @@ BibTeX:
     note = {Julia package}
 }
 ```
-
----
 
 ## License
 

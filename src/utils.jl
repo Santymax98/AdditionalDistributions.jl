@@ -702,7 +702,7 @@ end
 
 function _rqmc_integrate_mvn(nd::Int, A::AbstractVector{T}, B::AbstractVector{T}, DL::AbstractVector{T},
                              INFI::AbstractVector{Int}, COV::PackedMatrix{T}; maxpts::Int, abseps::Real,
-                             releps::Real, rng=Random.default_rng(), antithetic::Bool=false, nshifts::Int=12,
+                             releps::Real, rng=Random.default_rng(), antithetic::Bool=false, nshifts::Int=10,
                              batchsize::Int=0) where {T<:Real}
     qdim = nd - 1
     qdim <= 0 && return (value=one(T), error=zero(T), inform=0)
@@ -934,7 +934,7 @@ Rectangular probability for multivariate Gaussian (`ν <= 0`) and
 multivariate Student t (`ν > 0`) distributions using MVSORT plus randomized
 Richtmyer quasi-Monte Carlo.
 
-When `nshifts` is not specified, the core uses 12 randomized shifts for the
+When `nshifts` is not specified, the core uses 10 randomized shifts for the
 Gaussian case and 16 randomized shifts for the Student t case.
 
 Returns a named tuple `(value, error, inform)`.
@@ -968,7 +968,7 @@ function mvtcdf(Σ::AbstractMatrix{T},
     @assert size(Σ) == (n, n)
     @assert length(a) == n == length(b) == length(δ)
 
-    nshifts_eff = isnothing(nshifts) ? (ν > 0 ? 16 : 12) : nshifts
+    nshifts_eff = isnothing(nshifts) ? (ν > 0 ? 16 : 10) : nshifts
     if nshifts_eff < 2
         throw(ArgumentError("nshifts must be at least 2"))
     end

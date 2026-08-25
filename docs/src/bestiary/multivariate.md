@@ -139,7 +139,7 @@ res.algorithm
 | `abseps` | Absolute error tolerance. |
 | `releps` | Relative error tolerance. |
 | `rng` | Random number generator for randomized shifts. |
-| `nshifts` | Number of randomized QMC shifts. Defaults: `12` for Gaussian, `16` for Student-t. |
+| `nshifts` | Number of randomized QMC shifts. Defaults: `10` for Gaussian, `16` for Student-t. |
 | `batchsize` | Internal batch size. Automatic settings are usually appropriate. |
 | `pivot` | Enable or disable MVSORT reordering. |
 | `antithetic` | Optional antithetic reflection when available. |
@@ -183,7 +183,7 @@ Diagonal Gaussian covariance/correlation matrices are handled by an exact produc
 The default number of randomized shifts is:
 
 ```julia
-nshifts = 12
+nshifts = 10
 ```
 
 ### Student-t path

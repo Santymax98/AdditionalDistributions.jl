@@ -56,7 +56,7 @@ For quick exploratory computations, moderate values of `m` may be enough. For pu
 
 Defaults:
 
-- `MvGaussian`: `nshifts = 12`;
+- `MvGaussian`: `nshifts = 10`;
 - `MvTStudent`: `nshifts = 16`.
 
 For fixed `m`, increasing `nshifts` reduces the number of points per shift. It does not always reduce the reported error. Benchmark before changing defaults.
@@ -111,7 +111,7 @@ res = cdf_result(dist, lower, upper;
     m = 1_000_000,
     abseps = 1e-8,
     releps = 1e-8,
-    nshifts = 12,
+    nshifts = 10,
     rng = MersenneTwister(1234),
 )
 

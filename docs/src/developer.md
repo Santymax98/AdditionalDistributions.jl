@@ -65,9 +65,9 @@ The internal multivariate CDF entry point is `mvtcdf`. It prepares limits and co
 Important implementation choices:
 
 - Gaussian diagonal rectangles are evaluated exactly by factorization.
-- Gaussian correlated rectangles use folded randomized Richtmyer QMC.
+- Correlated Gaussian rectangles use a cached CBC rank-1 lattice with random shifts and tent transformation.
 - Student-t rectangles use the normal-scale-mixture representation and add one chi-square coordinate.
-- The chi-square coordinate is not folded.
+- Student-t uses the same tent transformation for the radial chi-square coordinate and the conditional Gaussian coordinates.
 - Diagonal Student-t scale matrices must not be treated as products of independent univariate Student-t probabilities.
 - `inform = 1` should be propagated to users rather than suppressed.
 
@@ -80,9 +80,9 @@ Reference tests should include:
 - tolerances justified by the reference method;
 - enough metadata to regenerate the value.
 
-For Gaussian rectangular probabilities, Genz-style examples and `MvNormalCDF.jl` comparisons are useful.
+For structured Gaussian benchmark cases, prefer deterministic references when available. Equicorrelation admits a one-factor reduction to one-dimensional quadrature, while AR(1) dependence admits a deterministic Gaussian Markov recursion. `MvNormalCDF.jl`, SciPy, and R's `mvtnorm` are useful cross-implementation checks, but their randomized estimates should not be treated as ground truth.
 
-For Student-t rectangular probabilities, R's `mvtnorm::pmvt` with `GenzBretz` can be used as an external reference.
+For Student-t benchmark cases, the normal-scale-mixture representation can be combined with the same deterministic Gaussian reference calculations and a one-dimensional radial integral. SciPy and R's `mvtnorm::pmvt` remain useful independent implementation comparisons.
 
 ## Benchmarks
 

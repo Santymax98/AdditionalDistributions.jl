@@ -24,7 +24,7 @@ The returned object stores:
 | `value` | Estimated rectangular probability. |
 | `error` | Estimated randomized QMC integration error. |
 | `inform` | Integration status code. |
-| `neval` | Integration budget used. |
+| `neval` | Requested integration budget. The actual prime-rounded lattice evaluation count may be slightly smaller. |
 | `algorithm` | Internal algorithm identifier. |
 
 ## `inform` codes
@@ -56,8 +56,8 @@ For quick exploratory computations, moderate values of `m` may be enough. For pu
 
 Defaults:
 
-- `MvGaussian`: `nshifts = 12`;
-- `MvTStudent`: `nshifts = 16`.
+- `MvGaussian`: `nshifts = 10`;
+- `MvTStudent`: `nshifts = 8`.
 
 For fixed `m`, increasing `nshifts` reduces the number of points per shift. It does not always reduce the reported error. Benchmark before changing defaults.
 
@@ -82,11 +82,13 @@ Small differences across seeds are expected because the method is randomized.
 
 ## Reference comparisons
 
-Gaussian cases are tested against Genz-style reference values and comparisons with `MvNormalCDF.jl`.
+For structured Gaussian validation cases, deterministic references are used whenever available. Equicorrelated rectangles are reduced to one-dimensional quadrature, while AR(1) cases are evaluated through a deterministic Gaussian Markov recursion.
 
-Student-t cases are tested against selected values generated with R's `mvtnorm::pmvt` and the `GenzBretz` algorithm.
+For Student-t validation cases, the normal-scale-mixture representation is combined with the same deterministic Gaussian references and a one-dimensional radial integral.
 
-For difficult Student-t cases, especially with small degrees of freedom, high dimension, or strong correlation, strict tolerances such as `1e-8` may require large integration budgets and may still return `inform = 1`.
+`MvNormalCDF.jl`, SciPy, and R's `mvtnorm` are useful independent implementation comparisons, but their randomized estimates are not treated as ground truth.
+
+For difficult Student-t cases, especially with small degrees of freedom, high dimension, or strong correlation, larger integration budgets may still be required.
 
 ## Recommended reporting format
 
@@ -105,13 +107,17 @@ lower = fill(-1.0, d)
 upper = fill(1.0, d)
 
 dist = MvGaussian(zeros(d), Σ)
-# or: dist = MvTStudent(ν, zeros(d), Σ)
+nshifts = 10
+
+# For Student-t:
+# dist = MvTStudent(ν, zeros(d), Σ)
+# nshifts = 8
 
 res = cdf_result(dist, lower, upper;
     m = 1_000_000,
     abseps = 1e-8,
     releps = 1e-8,
-    nshifts = 12,
+    nshifts = nshifts,
     rng = MersenneTwister(1234),
 )
 

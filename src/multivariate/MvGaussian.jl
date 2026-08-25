@@ -3,7 +3,7 @@
 
 A multivariate Gaussian distribution backed by `Distributions.AbstractMvNormal`,
 with rectangular cumulative probabilities evaluated by the custom
-Genz/Richtmyer randomized quasi-Monte Carlo backend in
+Genz-style randomized rank-1 lattice quasi-Monte Carlo backend in
 `AdditionalDistributions.jl`.
 
 `MvGaussian` participates in the `Distributions.jl` `AbstractMvNormal`
@@ -84,7 +84,7 @@ Distributions._rand!(
     cdf_result(d::Distributions.AbstractMvNormal, a, b;
                m=1000*length(a), abseps=1e-6, releps=1e-6,
                pivot=true, rng=Random.default_rng(),
-               antithetic=false, batchsize=0, nshifts=12)
+               antithetic=false, batchsize=0, nshifts=10)
 
 Estimate the rectangular probability `P(a ≤ X ≤ b)` for any
 `Distributions.AbstractMvNormal` and return a [`CDFResult`](@ref).
@@ -104,7 +104,7 @@ function cdf_result(
     rng=Random.default_rng(),
     antithetic::Bool=false,
     batchsize::Int=0,
-    nshifts::Int=12,
+    nshifts::Int=10,
 )
     n = length(d)
 

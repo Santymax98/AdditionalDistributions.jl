@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # Multivariate rectangular probabilities: MVN / MVT
 #
-# Pure Julia implementation of the Genz-Bretz/Richtmyer randomized
+# Pure Julia implementation of randomized Genz-style rank-1 lattice
 # quasi-Monte Carlo scheme. The core is specialized for the two relevant
 # cases:
 #   - ν <= 0 : multivariate Gaussian
@@ -14,7 +14,7 @@
 #   4. QMC generation and integrand evaluation are fused in one pass.
 #   5. MVN and MVT have separate hot paths.
 #   6. Independent MVN rectangles are evaluated exactly.
-#   7. MVN uses the folded/tent-transformed Richtmyer rule by default.
+#   7. MVN uses a cached CBC rank-1 lattice with tent transformation by default.
 #   8. MVT uses a batched reduced-dimension Genz transform with folded
 #      conditional Normal coordinates.
 # ─────────────────────────────────────────────────────────────
@@ -30,12 +30,77 @@
 # χ² → scale for t: R = sqrt(χ²_ν / ν).
 # The hot MVT path passes the Chisq distribution and invsqrtν explicitly to
 # avoid constructing Chisq(ν) at every QMC point.
+# Exact radial transform for ν = 4.
+#
+# If X ~ χ²₄, then Y = X/2 ~ Gamma(2, 1), with
+#
+#     F_Y(y) = 1 - exp(-y)(1+y).
+#
+# Solving F_Y(y) = u gives
+#
+#     y = -1 - W₋₁(-(1-u)/e),
+#
+# and therefore
+#
+#     sqrt(X/4) = sqrt(y/2).
+#
+# Near u = 0, evaluate 1 + W₋₁ close to its branch point
+# directly with lambertwbp to avoid catastrophic cancellation.
+@inline function _scale_t_nu4(χ::Distributions.Chisq, invsqrtν::T, u::T,) where {T<:AbstractFloat}
+
+    # Extremely small probabilities are essentially impossible in the
+    # randomized QMC loop, but using the generic χ² quantile here preserves
+    # full robustness when u approaches the smallest representable number.
+    if u < sqrt(floatmin(T))
+        return sqrt(T(Distributions.quantile(χ, u))) * invsqrtν
+    end
+
+    inv_e = exp(-one(T))
+
+    if u <= T(0.5)
+        # lambertwbp(z, -1) = 1 + W₋₁(-1/e + z),
+        # and -(1-u)/e = -1/e + u/e.
+        v = LambertW.lambertwbp(u * inv_e, -1)
+        return sqrt(-T(v) / T(2))
+    else
+        w = LambertW.lambertw(
+            -(one(T) - u) * inv_e,
+            -1,
+        )
+        return sqrt((-one(T) - T(w)) / T(2))
+    end
+end
+
 @inline function _scale_t(ν::Real, u::T) where {T<:Real}
     @assert ν > 0
+
+    if T <: AbstractFloat && ν == 1
+        return sqrt(T(2)) * T(SpecialFunctions.erfinv(u))
+    elseif T <: AbstractFloat && ν == 2
+        return sqrt(-log1p(-u))
+    elseif T <: AbstractFloat && ν == 4
+        χ = Distributions.Chisq(ν)
+        return _scale_t_nu4(χ, inv(sqrt(T(ν))), u)
+    end
+
     return sqrt(T(Distributions.quantile(Distributions.Chisq(ν), u)) / T(ν))
 end
 
-@inline function _scale_t(χ::Distributions.Chisq, invsqrtν::T, u::T) where {T<:Real}
+@inline function _scale_t(
+    χ::Distributions.Chisq,
+    invsqrtν::T,
+    u::T,
+) where {T<:Real}
+    ν = Distributions.dof(χ)
+
+    if T <: AbstractFloat && ν == 1
+        return sqrt(T(2)) * T(SpecialFunctions.erfinv(u))
+    elseif T <: AbstractFloat && ν == 2
+        return sqrt(-log1p(-u))
+    elseif T <: AbstractFloat && ν == 4
+        return _scale_t_nu4(χ, invsqrtν, u)
+    end
+
     return sqrt(T(Distributions.quantile(χ, u))) * invsqrtν
 end
 
@@ -109,10 +174,8 @@ end
 # ─────────────────────────────────────────────────────────────
 # Swap variables in packed representation
 # ─────────────────────────────────────────────────────────────
-@inline function _mvswap!(p::Int, q::Int,
-                          A::AbstractVector, B::AbstractVector,
-                          DL::AbstractVector, INFI::AbstractVector{Int},
-                          COV::AbstractVector, n::Int)
+@inline function _mvswap!(p::Int, q::Int, A::AbstractVector, B::AbstractVector, DL::AbstractVector,
+                          INFI::AbstractVector{Int}, COV::AbstractVector, n::Int)
     p == q && return
 
     A[p], A[q] = A[q], A[p]
@@ -143,10 +206,8 @@ end
 # This is the Genz variable sorting step. It moves fully infinite variables
 # to the end, then greedily pivots by the smallest conditional probability.
 # ─────────────────────────────────────────────────────────────
-function mvsort!(A::AbstractVector{T}, B::AbstractVector{T},
-                 DL::AbstractVector{T}, INFI::AbstractVector{Int},
-                 COV::AbstractVector{T}, n::Int;
-                 pivot::Bool=true, eps::Real=1e-10) where {T<:Real}
+function mvsort!(A::AbstractVector{T}, B::AbstractVector{T}, DL::AbstractVector{T}, INFI::AbstractVector{Int},
+                 COV::AbstractVector{T}, n::Int; pivot::Bool=true, eps::Real=1e-10) where {T<:Real}
 
     @assert length(A) == n == length(B) == length(DL) == length(INFI)
     @assert length(COV) == n * (n + 1) ÷ 2
@@ -293,12 +354,9 @@ end
 # ─────────────────────────────────────────────────────────────
 # Preparation from covariance/correlation matrix
 # ─────────────────────────────────────────────────────────────
-function mvprep(Σ::AbstractMatrix{T},
-                a::AbstractVector{T}, b::AbstractVector{T};
-                δ::AbstractVector{T}=zeros(T, size(Σ, 1)),
-                assume_correlation::Bool=false,
-                pivot::Bool=true,
-                eps::Real=1e-10) where {T<:Real}
+function mvprep(Σ::AbstractMatrix{T}, a::AbstractVector{T}, b::AbstractVector{T};
+                δ::AbstractVector{T}=zeros(T, size(Σ, 1)), assume_correlation::Bool=false,
+                pivot::Bool=true, eps::Real=1e-10) where {T<:Real}
 
     n = size(Σ, 1)
     @assert size(Σ) == (n, n)
@@ -355,8 +413,7 @@ function mvprep(Σ::AbstractMatrix{T},
     end
 
     nd, y, inform = mvsort!(A, B, DL, INFI, COV, n; pivot=pivot, eps=eps)
-    return (nd=nd, A=A, B=B, DL=DL, INFI=INFI,
-            COV=PackedMatrix{T}(COV, n), Y=y, inform=inform)
+    return (nd=nd, A=A, B=B, DL=DL, INFI=INFI, COV=PackedMatrix{T}(COV, n), Y=y, inform=inform)
 end
 
 # ─────────────────────────────────────────────────────────────
@@ -379,11 +436,10 @@ end
     return u - floor(u)
 end
 
-@inline function _rqmc_coord(r::Int, α::T, shift::T) where {T<:Real}
-    return _open01(_rqmc_raw(r, α, shift))
-end
+@inline _rqmc_coord(r::Int, α::T, shift::T) where {T<:Real} = _open01(_rqmc_raw(r, α, shift))
 
-# Folded/tent transformed Richtmyer coordinate used by the Genz MVN rule.
+
+# Folded/tent-transformed rank-1 lattice coordinate used by the Genz core.
 # This maps frac(rα + shift) to |2u - 1|. It gives the same support (0,1),
 # but usually lowers variation of the transformed integrand for MVN rectangles.
 @inline function _rqmc_folded_coord(r::Int, α::T, shift::T) where {T<:Real}
@@ -391,9 +447,7 @@ end
     return _open01(abs(T(2) * u - one(T)))
 end
 
-@inline function _rqmc_coord_antithetic(r::Int, α::T, shift::T) where {T<:Real}
-    return _open01(one(T) - _rqmc_raw(r, α, shift))
-end
+@inline _rqmc_coord_antithetic(r::Int, α::T, shift::T) where {T<:Real} = _open01(one(T) - _rqmc_raw(r, α, shift))
 
 @inline function _qmc_error(vals::AbstractVector{T}) where {T<:Real}
     n = length(vals)
@@ -418,10 +472,8 @@ function _is_diagonal(Σ::AbstractMatrix{T}, n::Int) where {T<:Real}
     return true
 end
 
-function _mvn_independent_cdf(Σ::AbstractMatrix{T},
-                              a::AbstractVector{T}, b::AbstractVector{T},
-                              δ::AbstractVector{T};
-                              assume_correlation::Bool=false) where {T<:Real}
+function _mvn_independent_cdf(Σ::AbstractMatrix{T}, a::AbstractVector{T}, b::AbstractVector{T},
+                              δ::AbstractVector{T}; assume_correlation::Bool=false) where {T<:Real}
     n = length(a)
     value = one(T)
 
@@ -444,12 +496,9 @@ end
 # MVT uses q = nd coordinates: 1 for the radial χ² scale and nd - 1 for
 # the conditional normal transform.
 # ─────────────────────────────────────────────────────────────
-function _mvn_integrand_rqmc!(y::AbstractVector{T}, r::Int,
-                              α::AbstractVector{T}, shift::AbstractVector{T},
-                              nd::Int,
-                              A::AbstractVector{T}, B::AbstractVector{T}, DL::AbstractVector{T},
-                              INFI::AbstractVector{Int}, COV::PackedMatrix{T},
-                              antithetic::Bool) where {T<:Real}
+function _mvn_integrand_rqmc!(y::AbstractVector{T}, r::Int, α::AbstractVector{T}, shift::AbstractVector{T},
+                              nd::Int, A::AbstractVector{T}, B::AbstractVector{T}, DL::AbstractVector{T},
+                              INFI::AbstractVector{Int}, COV::PackedMatrix{T}, antithetic::Bool) where {T<:Real}
     value = one(T)
 
     @inbounds begin
@@ -489,21 +538,17 @@ function _mvn_integrand_rqmc!(y::AbstractVector{T}, r::Int,
     return value
 end
 
-function _mvt_integrand_rqmc!(y::AbstractVector{T}, r::Int,
-                              α::AbstractVector{T}, shift::AbstractVector{T},
-                              nd::Int,
-                              A::AbstractVector{T}, B::AbstractVector{T}, DL::AbstractVector{T},
-                              INFI::AbstractVector{Int}, COV::PackedMatrix{T},
-                              χ::Distributions.Chisq,
-                              invsqrtν::T,
-                              antithetic::Bool) where {T<:Real}
+function _mvt_integrand_rqmc!(y::AbstractVector{T}, r::Int, α::AbstractVector{T}, shift::AbstractVector{T},
+                              nd::Int, A::AbstractVector{T}, B::AbstractVector{T}, DL::AbstractVector{T},
+                              INFI::AbstractVector{Int}, COV::PackedMatrix{T}, χ::Distributions.Chisq,
+                              invsqrtν::T, antithetic::Bool) where {T<:Real}
     value = one(T)
 
     @inbounds begin
-        # First QMC coordinate is the common t scale. We keep it non-folded:
-        # the χ² quantile has difficult endpoints, and folding it tends to
-        # oversample both tails in a way that is not consistently beneficial.
-        uχ = _rqmc_coord(r, α[1], shift[1])
+        # First QMC coordinate is the common t scale. The same tent
+        # periodization used by the conditional Normal coordinates is applied
+        # to the radial coordinate for the CBC lattice.
+        uχ = _rqmc_folded_coord(r, α[1], shift[1])
         R = _scale_t(χ, invsqrtν, uχ)
 
         s = DL[1]
@@ -543,10 +588,10 @@ function _mvt_integrand_rqmc!(y::AbstractVector{T}, r::Int,
 end
 
 # ─────────────────────────────────────────────────────────────
-# Randomized Richtmyer QMC drivers
+# Randomized rank-1 lattice QMC drivers
 # ─────────────────────────────────────────────────────────────
 # ─────────────────────────────────────────────────────────────
-# Batched MVN Richtmyer QMC driver
+# Batched MVN randomized-lattice QMC driver
 #
 # The scalar Genz transform is memory-light but pays substantial overhead per
 # point. This batch version evaluates many QMC points for one random shift in a
@@ -654,25 +699,21 @@ function _mvn_integrand_rqmc_batch!(pv::AbstractVector{T},
     end
 end
 
-function _rqmc_integrate_mvn(nd::Int,
-                             A::AbstractVector{T}, B::AbstractVector{T}, DL::AbstractVector{T},
-                             INFI::AbstractVector{Int}, COV::PackedMatrix{T};
-                             maxpts::Int,
-                             abseps::Real,
-                             releps::Real,
-                             rng=Random.default_rng(),
-                             antithetic::Bool=false,
-                             nshifts::Int=12,
+function _rqmc_integrate_mvn(nd::Int, A::AbstractVector{T}, B::AbstractVector{T}, DL::AbstractVector{T},
+                             INFI::AbstractVector{Int}, COV::PackedMatrix{T}; maxpts::Int, abseps::Real,
+                             releps::Real, rng=Random.default_rng(), antithetic::Bool=false, nshifts::Int=10,
                              batchsize::Int=0) where {T<:Real}
     qdim = nd - 1
     qdim <= 0 && return (value=one(T), error=zero(T), inform=0)
 
-    α = richtmyer_roots(T, qdim + 1)
+    per_point = antithetic ? 2 : 1
+    requested_nper = max(1, maxpts ÷ (nshifts * per_point),)
+
+    α, nper = _qmc_lattice(T, qdim, requested_nper,)
+
     shift = Vector{T}(undef, qdim)
     vals = Vector{T}(undef, nshifts)
 
-    per_point = antithetic ? 2 : 1
-    nper = max(1, maxpts ÷ (nshifts * per_point))
     bsz = batchsize > 0 ? min(batchsize, nper) : _default_mvn_batchsize(nper, nd)
 
     # y stores only the generated conditional Normal quantiles y₁,…,y_{nd-1}.
@@ -690,13 +731,11 @@ function _rqmc_integrate_mvn(nd::Int,
         r0 = 1
         while r0 <= nper
             nb = min(bsz, nper - r0 + 1)
-            acc += _mvn_integrand_rqmc_batch!(pv, y, work, r0, nb,
-                                              α, shift, nd, A, B, DL,
-                                              INFI, COV, false)
+            acc += _mvn_integrand_rqmc_batch!(pv, y, work, r0, nb, α, shift,
+                                              nd, A, B, DL, INFI, COV, false)
             if antithetic
-                acc += _mvn_integrand_rqmc_batch!(pv, y, work, r0, nb,
-                                                  α, shift, nd, A, B, DL,
-                                                  INFI, COV, true)
+                acc += _mvn_integrand_rqmc_batch!(pv, y, work, r0, nb, α, shift,
+                                                  nd, A, B, DL, INFI, COV, true)
             end
             r0 += nb
         end
@@ -740,7 +779,7 @@ function _mvt_integrand_rqmc_batch!(pv::AbstractVector{T},
         shχ = shift[1]
         for i in 1:nb
             r = r0 + i - 1
-            uχ = _rqmc_coord(r, aχ, shχ)
+            uχ = _rqmc_folded_coord(r, aχ, shχ)
             scale[i] = _scale_t(χ, invsqrtν, uχ)
         end
 
@@ -829,17 +868,19 @@ function _rqmc_integrate_mvt(nd::Int,
                              releps::Real,
                              rng=Random.default_rng(),
                              antithetic::Bool=false,
-                             nshifts::Int=12,
+                             nshifts::Int=8,
                              batchsize::Int=0) where {T<:Real}
     qdim = nd
     qdim <= 0 && return (value=one(T), error=zero(T), inform=0)
 
-    α = richtmyer_roots(T, qdim + 1)
+    per_point = antithetic ? 2 : 1
+    requested_nper = max(1, maxpts ÷ (nshifts * per_point),)
+
+    α, nper = _qmc_lattice(T, qdim, requested_nper,)
+
     shift = Vector{T}(undef, qdim)
     vals = Vector{T}(undef, nshifts)
 
-    per_point = antithetic ? 2 : 1
-    nper = max(1, maxpts ÷ (nshifts * per_point))
     bsz = batchsize > 0 ? min(batchsize, nper) : _default_mvt_batchsize(nper, nd)
 
     # Only y₁,…,y_{nd-1} are needed. The last level contributes only a mass.
@@ -861,15 +902,11 @@ function _rqmc_integrate_mvt(nd::Int,
         r0 = 1
         while r0 <= nper
             nb = min(bsz, nper - r0 + 1)
-            acc += _mvt_integrand_rqmc_batch!(pv, y, work, scale,
-                                              r0, nb, α, shift, nd,
-                                              A, B, DL, INFI, COV,
-                                              χ, invsqrtν, false)
+            acc += _mvt_integrand_rqmc_batch!(pv, y, work, scale, r0, nb, α, shift, nd,
+                                              A, B, DL, INFI, COV, χ, invsqrtν, false)
             if antithetic
-                acc += _mvt_integrand_rqmc_batch!(pv, y, work, scale,
-                                                  r0, nb, α, shift, nd,
-                                                  A, B, DL, INFI, COV,
-                                                  χ, invsqrtν, true)
+                acc += _mvt_integrand_rqmc_batch!(pv, y, work, scale, r0, nb, α, shift, nd,
+                                                  A, B, DL, INFI, COV, χ, invsqrtν, true)
             end
             r0 += nb
         end
@@ -894,10 +931,10 @@ end
 
 Rectangular probability for multivariate Gaussian (`ν <= 0`) and
 multivariate Student t (`ν > 0`) distributions using MVSORT plus randomized
-Richtmyer quasi-Monte Carlo.
+randomized rank-1 lattice quasi-Monte Carlo with cached CBC lattice construction.
 
-When `nshifts` is not specified, the core uses 12 randomized shifts for the
-Gaussian case and 16 randomized shifts for the Student t case.
+When `nshifts` is not specified, the core uses 10 randomized shifts for the
+Gaussian case and 8 randomized shifts for the Student t case.
 
 Returns a named tuple `(value, error, inform)`.
 
@@ -930,7 +967,7 @@ function mvtcdf(Σ::AbstractMatrix{T},
     @assert size(Σ) == (n, n)
     @assert length(a) == n == length(b) == length(δ)
 
-    nshifts_eff = isnothing(nshifts) ? (ν > 0 ? 16 : 12) : nshifts
+    nshifts_eff = isnothing(nshifts) ? (ν > 0 ? 8 : 10) : nshifts
     if nshifts_eff < 2
         throw(ArgumentError("nshifts must be at least 2"))
     end
@@ -949,11 +986,7 @@ function mvtcdf(Σ::AbstractMatrix{T},
         return (value=value, error=zero(T), inform=0)
     end
 
-    res = mvprep(Σ, a, b;
-                 δ=δ,
-                 assume_correlation=assume_correlation,
-                 pivot=pivot,
-                 eps=1e-10)
+    res = mvprep(Σ, a, b; δ=δ, assume_correlation=assume_correlation, pivot=pivot, eps=1e-10)
 
     if res.inform == 3
         return (value=zero(T), error=one(T), inform=3)

@@ -63,7 +63,7 @@ res = cdf_result(mvt, lower, upper;
     m = 1_000_000,
     abseps = 1e-8,
     releps = 1e-8,
-    nshifts = 16,
+    nshifts = 8,
     rng = MersenneTwister(1234),
 )
 ```
@@ -87,7 +87,7 @@ rn = cdf_result(dn, lower, upper;
 dt = MvTDist(ν, zeros(d), Σ)
 rt = cdf_result(dt, lower, upper;
     m = 1_000_000,
-    nshifts = 16,
+    nshifts = 8,
     rng = MersenneTwister(1234),
 )
 ```
@@ -139,7 +139,7 @@ res.algorithm
 | `abseps` | Absolute error tolerance. |
 | `releps` | Relative error tolerance. |
 | `rng` | Random number generator for randomized shifts. |
-| `nshifts` | Number of randomized QMC shifts. Defaults: `12` for Gaussian, `16` for Student-t. |
+| `nshifts` | Number of randomized QMC shifts. Defaults: `10` for Gaussian, `8` for Student-t. |
 | `batchsize` | Internal batch size. Automatic settings are usually appropriate. |
 | `pivot` | Enable or disable MVSORT reordering. |
 | `antithetic` | Optional antithetic reflection when available. |
@@ -151,7 +151,7 @@ res = cdf_result(mvt, lower, upper;
     m = 1_000_000,
     abseps = 1e-8,
     releps = 1e-8,
-    nshifts = 16,
+    nshifts = 8,
     rng = MersenneTwister(1234),
 )
 ```
@@ -175,7 +175,7 @@ The Gaussian rectangular CDF uses:
 
 1. MVSORT variable reordering;
 2. Genz-style conditional transformation;
-3. folded randomized Richtmyer quasi-Monte Carlo points;
+3. a cached CBC rank-1 lattice with randomized shifts and tent-transformed coordinates;
 4. batched evaluation to reduce per-point overhead.
 
 Diagonal Gaussian covariance/correlation matrices are handled by an exact product shortcut.
@@ -183,8 +183,10 @@ Diagonal Gaussian covariance/correlation matrices are handled by an exact produc
 The default number of randomized shifts is:
 
 ```julia
-nshifts = 12
+nshifts = 10
 ```
+
+For the default floating-point path, the Gaussian QMC dimension is `d - 1`. A prime-length CBC rank-1 lattice is selected from the available per-shift budget and its generating vector is cached. Very small budgets and non-floating scalar types retain a Richtmyer fallback.
 
 ### Student-t path
 
@@ -202,16 +204,20 @@ X = \mu + \frac{Z}{\sqrt{W/\nu}}
 
 has a multivariate Student-t distribution.
 
-The algorithm uses the same conditional Gaussian core together with one radial chi-square coordinate. The Gaussian coordinates are folded; the chi-square radial coordinate is not folded.
+The algorithm uses the same conditional Gaussian core together with one radial chi-square coordinate. Both the radial coordinate and the conditional Gaussian coordinates use the tent transformation.
 
-The default settings for `MvTStudent` are more conservative:
+The default settings for `MvTStudent` are:
 
 ```julia
 m = max(100_000, 10_000*d)
-nshifts = 16
+nshifts = 8
 ```
 
+The Student-t QMC dimension is `d`: one radial coordinate plus `d - 1` conditional Gaussian coordinates.
+
 Important: a diagonal Student-t scale matrix does not imply independent components. The components share a common radial scale, so diagonal Student-t rectangular probabilities are not computed as products of univariate Student-t probabilities.
+
+Because the CBC lattice length is prime-rounded, the actual number of lattice evaluations can be slightly smaller than the nominal budget. `CDFResult.neval` retains the requested-budget convention for API compatibility.
 
 ## Reproducibility
 

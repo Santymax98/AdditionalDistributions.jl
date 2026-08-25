@@ -162,3 +162,17 @@
         )
     end
 end
+
+@testitem "Student-t radial scaling keeps generic Real dispatch" begin
+    using AdditionalDistributions
+    using Distributions
+    using ForwardDiff
+
+    const AD = AdditionalDistributions
+
+    u = ForwardDiff.Dual{Nothing}(0.37, 1.0)
+    invsqrtν = one(u) / sqrt(5.0)
+
+    @test applicable(AD._scale_t, 5.0, u)
+    @test applicable(AD._scale_t, Chisq(5.0), invsqrtν, u)
+end

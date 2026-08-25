@@ -71,34 +71,33 @@
     end
 end
 
-@inline function _scale_t(ν::Real, u::T) where {T<:AbstractFloat}
+@inline function _scale_t(ν::Real, u::T) where {T<:Real}
     @assert ν > 0
 
-    if ν == 1
-        # χ²₁ quantile:
-        # sqrt(Q(u)) = sqrt(2) * erfinv(u).
+    if T <: AbstractFloat && ν == 1
         return sqrt(T(2)) * T(SpecialFunctions.erfinv(u))
-    elseif ν == 2
-        # χ²₂ ~ Exponential(scale=2):
-        # sqrt(Q(u)/2) = sqrt(-log(1-u)).
+    elseif T <: AbstractFloat && ν == 2
         return sqrt(-log1p(-u))
-    elseif ν == 4
+    elseif T <: AbstractFloat && ν == 4
         χ = Distributions.Chisq(ν)
-        return _scale_t_nu4(χ, inv(sqrt(T(ν))), u,)
+        return _scale_t_nu4(χ, inv(sqrt(T(ν))), u)
     end
 
     return sqrt(T(Distributions.quantile(Distributions.Chisq(ν), u)) / T(ν))
 end
 
-@inline function _scale_t(χ::Distributions.Chisq, invsqrtν::T, u::T,) where {T<:AbstractFloat}
-
+@inline function _scale_t(
+    χ::Distributions.Chisq,
+    invsqrtν::T,
+    u::T,
+) where {T<:Real}
     ν = Distributions.dof(χ)
 
-    if ν == 1
+    if T <: AbstractFloat && ν == 1
         return sqrt(T(2)) * T(SpecialFunctions.erfinv(u))
-    elseif ν == 2
+    elseif T <: AbstractFloat && ν == 2
         return sqrt(-log1p(-u))
-    elseif ν == 4
+    elseif T <: AbstractFloat && ν == 4
         return _scale_t_nu4(χ, invsqrtν, u)
     end
 

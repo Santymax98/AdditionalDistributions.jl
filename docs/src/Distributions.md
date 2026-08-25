@@ -14,6 +14,7 @@ Detailed docstrings are available in the corresponding bestiary pages:
 
 - `Alpha`
 - `Argus`
+- `AsymLaplace`
 - `Benini`
 - `Benktander_Type1`
 - `Benktander_Type2`
@@ -24,6 +25,9 @@ Detailed docstrings are available in the corresponding bestiary pages:
 - `CrystalBall`
 - `Dagum`
 - `Gompertz`
+- `HalfCauchy`
+- `HalfNormal`
+- `HalfTDist`
 - `IrwinHall`
 - `Lomax`
 - `Maxwell`
@@ -41,7 +45,9 @@ Detailed docstrings are available in the corresponding bestiary pages:
 - `FlorySchulz`
 - `GaussKuzmin`
 - `Logarithmic`
+- `PoissonInvGaussian`
 - `Rademacher`
+- `Weibull_Type1`
 - `Yule`
 - `Zeta`
 - `ZIB`

@@ -135,3 +135,45 @@ end
     @test default_result.inform == explicit_result.inform
     @test default_result.neval == explicit_result.neval
 end
+
+@testitem "Student-t default QMC shift count" begin
+    using AdditionalDistributions
+    using Distributions
+    using LinearAlgebra
+    using Random
+
+    d = 3
+    ρ = 0.3
+    ν = 4.0
+
+    Σ = fill(ρ, d, d)
+    Σ[diagind(Σ)] .= 1.0
+
+    dist = MvTDist(ν, zeros(d), Σ)
+    lower = fill(-1.0, d)
+    upper = fill(1.0, d)
+
+    seed = 20260824
+
+    default_result = cdf_result(
+        dist,
+        lower,
+        upper;
+        m=10_000,
+        rng=MersenneTwister(seed),
+    )
+
+    explicit_result = cdf_result(
+        dist,
+        lower,
+        upper;
+        m=10_000,
+        nshifts=8,
+        rng=MersenneTwister(seed),
+    )
+
+    @test default_result.value == explicit_result.value
+    @test default_result.error == explicit_result.error
+    @test default_result.inform == explicit_result.inform
+    @test default_result.neval == explicit_result.neval
+end

@@ -869,7 +869,7 @@ function _rqmc_integrate_mvt(nd::Int,
                              releps::Real,
                              rng=Random.default_rng(),
                              antithetic::Bool=false,
-                             nshifts::Int=12,
+                             nshifts::Int=8,
                              batchsize::Int=0) where {T<:Real}
     qdim = nd
     qdim <= 0 && return (value=one(T), error=zero(T), inform=0)
@@ -935,7 +935,7 @@ multivariate Student t (`ν > 0`) distributions using MVSORT plus randomized
 Richtmyer quasi-Monte Carlo.
 
 When `nshifts` is not specified, the core uses 10 randomized shifts for the
-Gaussian case and 16 randomized shifts for the Student t case.
+Gaussian case and 8 randomized shifts for the Student t case.
 
 Returns a named tuple `(value, error, inform)`.
 
@@ -968,7 +968,7 @@ function mvtcdf(Σ::AbstractMatrix{T},
     @assert size(Σ) == (n, n)
     @assert length(a) == n == length(b) == length(δ)
 
-    nshifts_eff = isnothing(nshifts) ? (ν > 0 ? 16 : 10) : nshifts
+    nshifts_eff = isnothing(nshifts) ? (ν > 0 ? 8 : 10) : nshifts
     if nshifts_eff < 2
         throw(ArgumentError("nshifts must be at least 2"))
     end

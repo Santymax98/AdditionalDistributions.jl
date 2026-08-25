@@ -100,7 +100,7 @@ partype(d::MvTStudent) = partype(d.dist)
                m=max(100_000, 10_000*length(a)),
                abseps=1e-6, releps=1e-6, pivot=true,
                rng=Random.default_rng(), antithetic=false,
-               batchsize=0, nshifts=16)
+               batchsize=0, nshifts=8)
 
 Estimate `P(a ≤ X ≤ b)` for a native `Distributions.AbstractMvTDist` and
 return a [`CDFResult`](@ref).
@@ -119,7 +119,7 @@ function cdf_result(
     rng=Random.default_rng(),
     antithetic::Bool=false,
     batchsize::Int=0,
-    nshifts::Int=16,
+    nshifts::Int=8,
 )
     n = length(d)
 

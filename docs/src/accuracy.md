@@ -57,7 +57,7 @@ For quick exploratory computations, moderate values of `m` may be enough. For pu
 Defaults:
 
 - `MvGaussian`: `nshifts = 10`;
-- `MvTStudent`: `nshifts = 16`.
+- `MvTStudent`: `nshifts = 8`.
 
 For fixed `m`, increasing `nshifts` reduces the number of points per shift. It does not always reduce the reported error. Benchmark before changing defaults.
 

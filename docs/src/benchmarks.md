@@ -170,7 +170,7 @@ res = cdf_result(dist, lower, upper;
     m = 1_000_000,
     abseps = 1e-8,
     releps = 1e-8,
-    nshifts = 16,
+    nshifts = 8,
     rng = MersenneTwister(1234),
 )
 

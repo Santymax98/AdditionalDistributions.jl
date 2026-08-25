@@ -63,7 +63,7 @@ res = cdf_result(mvt, lower, upper;
     m = 1_000_000,
     abseps = 1e-8,
     releps = 1e-8,
-    nshifts = 16,
+    nshifts = 8,
     rng = MersenneTwister(1234),
 )
 ```
@@ -87,7 +87,7 @@ rn = cdf_result(dn, lower, upper;
 dt = MvTDist(ν, zeros(d), Σ)
 rt = cdf_result(dt, lower, upper;
     m = 1_000_000,
-    nshifts = 16,
+    nshifts = 8,
     rng = MersenneTwister(1234),
 )
 ```
@@ -139,7 +139,7 @@ res.algorithm
 | `abseps` | Absolute error tolerance. |
 | `releps` | Relative error tolerance. |
 | `rng` | Random number generator for randomized shifts. |
-| `nshifts` | Number of randomized QMC shifts. Defaults: `10` for Gaussian, `16` for Student-t. |
+| `nshifts` | Number of randomized QMC shifts. Defaults: `10` for Gaussian, `8` for Student-t. |
 | `batchsize` | Internal batch size. Automatic settings are usually appropriate. |
 | `pivot` | Enable or disable MVSORT reordering. |
 | `antithetic` | Optional antithetic reflection when available. |
@@ -151,7 +151,7 @@ res = cdf_result(mvt, lower, upper;
     m = 1_000_000,
     abseps = 1e-8,
     releps = 1e-8,
-    nshifts = 16,
+    nshifts = 8,
     rng = MersenneTwister(1234),
 )
 ```
@@ -208,7 +208,7 @@ The default settings for `MvTStudent` are more conservative:
 
 ```julia
 m = max(100_000, 10_000*d)
-nshifts = 16
+nshifts = 8
 ```
 
 Important: a diagonal Student-t scale matrix does not imply independent components. The components share a common radial scale, so diagonal Student-t rectangular probabilities are not computed as products of univariate Student-t probabilities.

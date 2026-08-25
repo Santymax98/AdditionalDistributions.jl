@@ -3,7 +3,7 @@
 
 A multivariate Gaussian distribution backed by `Distributions.AbstractMvNormal`,
 with rectangular cumulative probabilities evaluated by the custom
-Genz/Richtmyer randomized quasi-Monte Carlo backend in
+Genz-style randomized rank-1 lattice quasi-Monte Carlo backend in
 `AdditionalDistributions.jl`.
 
 `MvGaussian` participates in the `Distributions.jl` `AbstractMvNormal`

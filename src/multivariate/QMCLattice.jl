@@ -152,16 +152,14 @@ function _cached_cbc_lattice(::Type{T}, qdim::Int, requested_nper::Int,) where {
     end
 end
 
-"""
-    _qmc_lattice(T, qdim, requested_nper)
-
-Return `(α, nper)` for the internal randomized rank-1 lattice.
-
-For ordinary floating-point calculations and at least three requested
-points per random shift, a cached Fast-CBC lattice is used. Very small
-budgets and non-floating scalar types retain the previous Richtmyer rule
-as a compatibility fallback.
-"""
+#     _qmc_lattice(T, qdim, requested_nper)
+#
+# Return `(α, nper)` for the internal randomized rank-1 lattice.
+#
+# For ordinary floating-point calculations and at least three requested
+# points per random shift, a cached Fast-CBC lattice is used. Very small
+# budgets and non-floating scalar types retain the previous Richtmyer rule
+# as a compatibility fallback.
 function _qmc_lattice(::Type{T}, qdim::Int, requested_nper::Int,) where {T<:AbstractFloat}
     qdim <= 0 && return T[], requested_nper
 

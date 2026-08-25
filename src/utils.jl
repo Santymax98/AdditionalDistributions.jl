@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # Multivariate rectangular probabilities: MVN / MVT
 #
-# Pure Julia implementation of the Genz-Bretz/Richtmyer randomized
+# Pure Julia implementation of randomized Genz-style rank-1 lattice
 # quasi-Monte Carlo scheme. The core is specialized for the two relevant
 # cases:
 #   - ν <= 0 : multivariate Gaussian
@@ -14,7 +14,7 @@
 #   4. QMC generation and integrand evaluation are fused in one pass.
 #   5. MVN and MVT have separate hot paths.
 #   6. Independent MVN rectangles are evaluated exactly.
-#   7. MVN uses the folded/tent-transformed Richtmyer rule by default.
+#   7. MVN uses a cached CBC rank-1 lattice with tent transformation by default.
 #   8. MVT uses a batched reduced-dimension Genz transform with folded
 #      conditional Normal coordinates.
 # ─────────────────────────────────────────────────────────────
@@ -440,7 +440,7 @@ end
 @inline _rqmc_coord(r::Int, α::T, shift::T) where {T<:Real} = _open01(_rqmc_raw(r, α, shift))
 
 
-# Folded/tent transformed Richtmyer coordinate used by the Genz MVN rule.
+# Folded/tent-transformed rank-1 lattice coordinate used by the Genz core.
 # This maps frac(rα + shift) to |2u - 1|. It gives the same support (0,1),
 # but usually lowers variation of the transformed integrand for MVN rectangles.
 @inline function _rqmc_folded_coord(r::Int, α::T, shift::T) where {T<:Real}
@@ -932,7 +932,7 @@ end
 
 Rectangular probability for multivariate Gaussian (`ν <= 0`) and
 multivariate Student t (`ν > 0`) distributions using MVSORT plus randomized
-Richtmyer quasi-Monte Carlo.
+randomized rank-1 lattice quasi-Monte Carlo with cached CBC lattice construction.
 
 When `nshifts` is not specified, the core uses 10 randomized shifts for the
 Gaussian case and 8 randomized shifts for the Student t case.

@@ -3,7 +3,7 @@
 
 A multivariate Student's t distribution backed by a native
 `Distributions.AbstractMvTDist`, with rectangular cumulative probabilities
-evaluated by the custom Genz-Bretz/Richtmyer randomized QMC backend in
+evaluated by the custom Genz-style randomized rank-1 lattice QMC backend in
 `AdditionalDistributions.jl`.
 
 `Σ` is the scale/scatter matrix used by `Distributions.MvTDist`; it is not

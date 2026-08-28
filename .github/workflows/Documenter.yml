@@ -36,7 +36,7 @@ jobs:
 
       - name: Restore Julia package cache
         id: julia-cache
-        uses: julia-actions/cache@v2
+        uses: julia-actions/cache@v3
 
       # --- 👇 Paso clave: usar el paquete local antes de instanciar ---
       - name: Install Julia dependencies (develop local)
